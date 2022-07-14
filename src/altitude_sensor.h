@@ -6,17 +6,17 @@ class AltitudeSensor
 {
 public:
     enum SensorType {stUnknown, BMP085, BME280};
-    enum State 
-    {
-        NoError = 0,
-        DataTooLong,
-        NackOnAddress,
-        NackOnData,
-        OtherError,
-        Timeout,
-        IncorrectReturnCode,
-        DataNotAvailable
-    };
+//    enum State
+//    {
+//        NoError = 0,
+//        DataTooLong,
+//        NackOnAddress,
+//        NackOnData,
+//        OtherError,
+//        Timeout,
+//        IncorrectReturnCode,
+//        DataNotAvailable
+//    };
     
     static constexpr uint8_t MaxPressBufferLenght = 50;
 
@@ -25,7 +25,7 @@ public:
     bool isTimeToGetTemp() const;
     bool isTimeToGetHum() const;
 
-    State checkSensor();
+    uint8_t checkSensor();
     void checkTemperature();
     void checkPressure();
     void checkHumidity();

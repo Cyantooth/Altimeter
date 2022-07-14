@@ -1,8 +1,6 @@
 #pragma once
 
 #include <Arduino.h>
-#include <EEPROM.h>
-#include <avr/wdt.h>
 
 #include "display.h"
 #include "altitude_sensor.h"

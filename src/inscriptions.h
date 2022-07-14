@@ -4,14 +4,14 @@
 
 const uint8_t LevelerWidth = 14;
 const uint8_t LevelerHeight = 29;
-const unsigned char Leveler[] PROGMEM = {
+const uint8_t Leveler[] PROGMEM = {
     0, 45, 8, 6, 8, 6, 8, 6, 8, 6, 8, 6, 8, 7, 7, 3, 1, 4, 6, 3, 2, 4, 5, 3, 3, 4, 4, 3, 4, 4, 3, 3, 5,
     4, 2, 3, 4, 4, 3, 3, 3, 4, 4, 3, 2, 4, 5, 3, 1, 4, 6, 7, 7, 6, 8, 6, 8, 6, 8, 6, 8, 6, 8, 6, 8, 45
 };
 
 const uint8_t UnitsWidth = 94;
 const uint8_t UnitsHeight = 21;
-const unsigned char txtMeters[] PROGMEM = {
+const uint8_t txtMeters[] PROGMEM = {
     0, 6, 10, 6, 19, 5, 48, 7, 8, 7, 19, 5, 48, 7, 8, 7, 19, 5, 48, 8, 6, 8, 19, 5, 48, 8, 6, 8, 19, 5,
     48, 9, 4, 9, 6, 6, 5, 12, 5, 6, 6, 5, 3, 3, 5, 7, 3, 9, 4, 9, 4, 10, 3, 12, 3, 10, 4, 5, 1, 5, 3, 11,
     1, 10, 3, 9, 3, 12, 2, 12, 2, 12, 3, 11, 2, 12, 1, 5, 1, 4, 2, 4, 1, 5, 2, 5, 3, 5, 4, 5, 6, 5, 3, 5,
@@ -27,7 +27,7 @@ const uint16_t txtMetersLen = 295;
 
 const uint8_t txtPressUnitWidth = 38;
 const uint8_t txtPressUnitHeight = 43;
-const unsigned char txtMmHg[] PROGMEM = {
+const uint8_t txtMmHg[] PROGMEM = {
     1, 3, 1, 4, 4, 3, 4, 3, 1, 4, 4, 3, 4, 9, 1, 6, 3, 9, 1, 6, 3, 17, 2, 17, 2, 4, 3, 4, 2, 4, 2, 4, 3, 4,
     2, 4, 2, 3, 4, 3, 4, 3, 2, 3, 4, 3, 4, 3, 2, 3, 4, 3, 4, 3, 2, 3, 4, 3, 4, 3, 2, 3, 4, 3, 4, 3, 2, 3, 4,
     3, 4, 3, 2, 3, 4, 3, 4, 3, 2, 3, 4, 3, 4, 3, 2, 3, 4, 3, 4, 3, 2, 3, 4, 3, 4, 3, 2, 3, 4, 3, 4, 3, 2, 3,
@@ -41,7 +41,7 @@ const unsigned char txtMmHg[] PROGMEM = {
 };
 const uint16_t txtMmHgLen = 317;
 
-const unsigned char txtHPA[] PROGMEM = {
+const uint8_t txtHPA[] PROGMEM = {
     255, 0, 163, 3, 9, 10, 16, 3, 9, 11, 15, 3, 9, 12, 14, 3, 9, 3, 6, 4, 13, 3, 9, 3, 7, 3, 13, 3, 9, 3, 7,
     3, 13, 3, 2, 4, 3, 3, 7, 3, 4, 6, 3, 3, 1, 6, 2, 3, 7, 3, 2, 9, 2, 11, 1, 3, 7, 3, 2, 10, 1, 4, 3, 4, 1,
     3, 6, 3, 2, 4, 3, 4, 1, 3, 5, 3, 1, 12, 3, 2, 5, 3, 1, 3, 5, 3, 1, 11, 11, 3, 1, 3, 5, 3, 1, 10, 9, 6, 1,
@@ -51,7 +51,7 @@ const unsigned char txtHPA[] PROGMEM = {
 };
 const uint16_t txtHPALen = 177;
 
-const unsigned char txtMS[] PROGMEM = {
+const uint8_t txtMS[] PROGMEM = {
     21, 3, 32, 3, 11, 3, 1, 4, 3, 4, 6, 3, 3, 6, 2, 9, 1, 6, 4, 3, 3, 8, 1, 17, 3, 3, 2, 14, 3, 4, 3, 3, 3, 3,
     2, 3, 4, 6, 4, 3, 4, 3, 3, 3, 2, 5, 5, 3, 4, 3, 4, 3, 3, 3, 2, 7, 3, 3, 4, 3, 4, 3, 3, 3, 3, 8, 1, 3, 4, 3,
     4, 3, 2, 4, 4, 11, 4, 3, 4, 3, 2, 3, 7, 9, 4, 3, 4, 3, 2, 3, 3, 3, 4, 6, 4, 3, 4, 3, 2, 3, 3, 4, 3, 6, 4,
@@ -61,7 +61,7 @@ const uint8_t txtMSWidth = 35;
 const uint8_t txtMSHeight = 19;
 const uint8_t txtMSLen = 137;
 
-const unsigned char VSpeedRuler[] PROGMEM = {
+const uint8_t VSpeedRuler[] PROGMEM = {
     11, 3, 3, 3, 11, 1, 3, 1, 1, 1, 3, 1, 14, 1, 1, 1, 3, 1, 14, 1, 1, 1, 3, 7, 7, 1, 2, 1, 3, 1, 5, 1, 6, 1, 3,
     1, 3, 1, 5, 1, 5, 1, 4, 1, 3, 1, 5, 1, 4, 1, 5, 1, 3, 1, 5, 1, 4, 5, 2, 3, 6, 1, 20, 1, 20, 1, 20, 1, 20, 1,
     18, 3, 20, 1, 20, 1, 20, 1, 20, 1, 20, 1, 20, 1, 20, 1, 20, 1, 20, 1, 20, 1, 7, 1, 2, 3, 7, 1, 6, 2, 1, 1, 3,
@@ -92,7 +92,7 @@ const uint8_t VSpeedRulerWidth = 21;
 const uint8_t VSpeedRulerHeight = 237;
 const uint16_t VSpeedRulerLen = 829;
 
-const unsigned char VSpeedArrowUp[98] PROGMEM = {
+const uint8_t VSpeedArrowUp[98] PROGMEM = {
     0, 0, 0, 8, 0, 0, 0, 0, 0, 0, 62, 0, 0, 0,
     0, 0, 0, 255, 128, 0, 0, 0, 0, 3, 255, 224, 0, 0,
     0, 0, 15, 255, 248, 0, 0, 0, 0, 63, 255, 254, 0, 0,
@@ -102,7 +102,7 @@ const unsigned char VSpeedArrowUp[98] PROGMEM = {
     15, 255, 255, 255, 255, 255, 248, 63, 255, 255, 255, 255, 255, 254
 };
 
-const unsigned char VSpeedArrowDn[98] PROGMEM = {
+const uint8_t VSpeedArrowDn[98] PROGMEM = {
     63, 255, 255, 255, 255, 255, 254, 15, 255, 255, 255, 255, 255, 248,
     3, 255, 255, 255, 255, 255, 224, 0, 255, 255, 255, 255, 255, 128, 0,
     63, 255, 255, 255, 254, 0, 0, 15, 255, 255, 255, 248, 0, 0,
@@ -117,7 +117,7 @@ const uint8_t VSpeedArrowWidthBytes = 7;
 const uint8_t VSpeedArrowHeight = 14;
 const uint8_t VSpeedArrowLen = 98;
 
-const unsigned char txtFL[] PROGMEM = {
+const uint8_t txtFL[] PROGMEM = {
     0, 14, 2, 4, 10, 14, 2, 4, 10, 14, 2, 4, 10, 14, 2, 4, 10, 4, 12, 4, 10, 4, 12, 4, 10, 4, 12, 4, 10, 4,
     12, 4, 10, 4, 12, 4, 10, 4, 12, 4, 10, 13, 3, 4, 10, 13, 3, 4, 10, 13, 3, 4, 10, 13, 3, 4, 10, 4, 12, 4,
     10, 4, 12, 4, 10, 4, 12, 4, 10, 4, 12, 4, 10, 4, 12, 4, 10, 4, 12, 4, 10, 4, 12, 18, 12, 18, 12, 18, 12, 14

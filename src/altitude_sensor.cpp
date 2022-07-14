@@ -1,18 +1,13 @@
 #include "altitude_sensor.h"
 
-#include <Wire.h>
-
 #include "application.h"
+#include "i2c.h"
 
 class AltitudeSensor::PrivateSensor
 {
 public:
-    PrivateSensor();
-    ~PrivateSensor();
+    PrivateSensor() = default;
 
-    AltitudeSensor::State prepareTransmission(const uint8_t addr);
-    uint8_t readRegister(const uint8_t addr, void* data, const uint8_t size = 1);
-    uint8_t writeRegister(const uint8_t addr, const uint8_t data);
     uint8_t checkSensor();
     virtual uint8_t readCalibrateParams() = 0;
     virtual const uint16_t pressInterval() const = 0;
@@ -25,7 +20,7 @@ public:
     inline int32_t getP() const { return P; }
 
 protected:
-    virtual const uint8_t i2cAddr() const = 0; // TODO: Rename to sensorAddr()
+    virtual const uint8_t deviceAddr() const = 0;
     virtual const uint8_t chipId() const = 0;
 
 protected:
@@ -33,58 +28,10 @@ protected:
     int32_t P;
 };
 
-AltitudeSensor::PrivateSensor::PrivateSensor()
-{
-    Wire.begin();
-}
-
-AltitudeSensor::PrivateSensor::~PrivateSensor()
-{
-    Wire.end();
-}
-
-AltitudeSensor::State AltitudeSensor::PrivateSensor::prepareTransmission(const uint8_t addr)
-{
-    Wire.beginTransmission(i2cAddr());
-    Wire.write(addr);
-    return Wire.endTransmission();
-}
-
-uint8_t AltitudeSensor::PrivateSensor::readRegister(const uint8_t addr, void* data, const uint8_t size)
-{
-//    Serial.print("readRegister(): addr = ");Serial.print(addr, HEX);Serial.print("; size = ");Serial.println(size);
-    if (uint8_t ret = prepareTransmission(addr))
-        return ret;
-
-    char* ptr = (char*)data;
-    Wire.requestFrom(i2cAddr(), size);
-    for (uint8_t i = size; i > 0; i--)
-    {
-        if (Wire.available())
-        {
-            *(ptr + i - 1) = Wire.read();
-        }
-        else
-        {
-            return State::DataNotAvailable;
-        }
-    }
-    return Wire.endTransmission();
-}
-
-uint8_t AltitudeSensor::PrivateSensor::writeRegister(const uint8_t addr, const uint8_t data)
-{
-    Wire.beginTransmission(i2cAddr());
-    Wire.write(addr);
-    Wire.write(data);
-
-    return Wire.endTransmission();
-}
-
 uint8_t AltitudeSensor::PrivateSensor::checkSensor()
 {
     uint8_t check;
-    if (uint8_t ret = readRegister(0xD0, &check))
+    if (uint8_t ret = readRegister(deviceAddr(), 0xD0, &check))
         return ret;
     if (check != chipId())
         return 0xFF;
@@ -107,17 +54,18 @@ class AltitudeSensor::PrivateBmp085 : public PrivateSensor
 
     struct CalibratedParams 
     {
-        int16_t ac1 = 0;
-        int16_t ac2 = 0;
-        int16_t ac3 = 0;
-        uint16_t ac4 = 0;
-        uint16_t ac5 = 0;
-        uint16_t ac6 = 0;
-        int16_t b1 = 0;
-        int16_t b2 = 0;
-        int16_t mb = 0;
-        int16_t mc = 0;
+        // Reverse order due to big-endian transfer
         int16_t md = 0;
+        int16_t mc = 0;
+        int16_t mb = 0;
+        int16_t b2 = 0;
+        int16_t b1 = 0;
+        uint16_t ac6 = 0;
+        uint16_t ac5 = 0;
+        uint16_t ac4 = 0;
+        int16_t ac3 = 0;
+        int16_t ac2 = 0;
+        int16_t ac1 = 0;
     } __attribute__((packed));
 
 public:
@@ -130,7 +78,7 @@ public:
     uint8_t calcPress() override;
 
 protected:
-    inline const uint8_t i2cAddr() const override { return 0x77; }
+    inline const uint8_t deviceAddr() const override { return 0x77; }
     inline const uint8_t chipId() const override { return 0x55; }
 
 private:
@@ -154,7 +102,7 @@ uint8_t AltitudeSensor::PrivateBmp085::calcTemp()
     int32_t UT;
     {
         uint16_t tmp;
-        if (uint8_t ret = readRegister(0xF6, &tmp, 2))
+        if (uint8_t ret = readRegister(deviceAddr(), 0xF6, &tmp, 2))
         {
             UT = 0;
             T = 0;
@@ -174,12 +122,12 @@ uint8_t AltitudeSensor::PrivateBmp085::calcPress()
     int32_t UP = 0;
     if (m_rate == 0)
     {
-        if (uint8_t ret = readRegister(0xF6, &UP, 2))
+        if (uint8_t ret = readRegister(deviceAddr(), 0xF6, &UP, 2))
             return ret;
     }
     else
     {
-        if (uint8_t ret = readRegister(0xF6, &UP, 3))
+        if (uint8_t ret = readRegister(deviceAddr(), 0xF6, &UP, 3))
             return ret;
         UP >>= (8 - m_rate);
     }
@@ -209,7 +157,7 @@ void AltitudeSensor::PrivateBmp085::startReadUP()
     if (aApplication->tempState() == Querying)
         return;
 
-    if (writeRegister(0xF4, 0x34 | (m_rate << 6)))
+    if (writeRegister(deviceAddr(), 0xF4, 0x34 | (m_rate << 6)))
     {
         aApplication->setFlag(ApplicationFlags::AltSensorError);
         aApplication->setPressState(NoAction);
@@ -225,7 +173,7 @@ void AltitudeSensor::PrivateBmp085::startReadUT()
     if (aApplication->pressState() == Querying)
         return;
 
-    if (writeRegister(0xF4, 0x2E))
+    if (writeRegister(deviceAddr(), 0xF4, 0x2E))
     {
         aApplication->setFlag(ApplicationFlags::AltSensorError);
         aApplication->setTempState(NoAction);
@@ -238,34 +186,19 @@ void AltitudeSensor::PrivateBmp085::startReadUT()
 
 uint8_t AltitudeSensor::PrivateBmp085::readCalibrateParams()
 {
-    char* ptr = (char*)&m_calibratedParams;
-    prepareTransmission(0xAA);
-    Wire.requestFrom(i2cAddr(), sizeof(CalibratedParams));
+//    Serial.print("AC1:\t"); Serial.print(m_calibratedParams.ac1, HEX); Serial.print("\t"); Serial.println(m_calibratedParams.ac1);
+//    Serial.print("AC2:\t"); Serial.print(m_calibratedParams.ac2, HEX); Serial.print("\t"); Serial.println(m_calibratedParams.ac2);
+//    Serial.print("AC3:\t"); Serial.print(m_calibratedParams.ac3, HEX); Serial.print("\t"); Serial.println(m_calibratedParams.ac3);
+//    Serial.print("AC4:\t"); Serial.print(m_calibratedParams.ac4, HEX); Serial.print("\t"); Serial.println(m_calibratedParams.ac4);
+//    Serial.print("AC5:\t"); Serial.print(m_calibratedParams.ac5, HEX); Serial.print("\t"); Serial.println(m_calibratedParams.ac5);
+//    Serial.print("AC6:\t"); Serial.print(m_calibratedParams.ac6, HEX); Serial.print("\t"); Serial.println(m_calibratedParams.ac6);
+//    Serial.print("B1:\t");  Serial.print(m_calibratedParams.b1, HEX);  Serial.print("\t"); Serial.println(m_calibratedParams.b1);
+//    Serial.print("B2:\t");  Serial.print(m_calibratedParams.b2, HEX);  Serial.print("\t"); Serial.println(m_calibratedParams.b2);
+//    Serial.print("MB:\t");  Serial.print(m_calibratedParams.mb, HEX);  Serial.print("\t"); Serial.println(m_calibratedParams.mb);
+//    Serial.print("MC:\t");  Serial.print(m_calibratedParams.mc, HEX);  Serial.print("\t"); Serial.println(m_calibratedParams.mc);
+//    Serial.print("MD:\t");  Serial.print(m_calibratedParams.md, HEX);  Serial.print("\t"); Serial.println(m_calibratedParams.md);
 
-    // MSB first
-    uint8_t idx = 1;       
-    while (Wire.available())
-    {
-        *(ptr + idx) = Wire.read();
-        if (idx % 2)
-            idx--;
-        else
-            idx += 3;
-    }
-
-//    Serial.print("AC1: "); Serial.println(m_calibratedParams.ac1);
-//    Serial.print("AC2: "); Serial.println(m_calibratedParams.ac2);
-//    Serial.print("AC3: "); Serial.println(m_calibratedParams.ac3);
-//    Serial.print("AC4: "); Serial.println(m_calibratedParams.ac4);
-//    Serial.print("AC5: "); Serial.println(m_calibratedParams.ac5);
-//    Serial.print("AC6: "); Serial.println(m_calibratedParams.ac6);
-//    Serial.print("B1: "); Serial.println(m_calibratedParams.b1);
-//    Serial.print("B2: "); Serial.println(m_calibratedParams.b2);
-//    Serial.print("MB: "); Serial.println(m_calibratedParams.mb);
-//    Serial.print("MC: "); Serial.println(m_calibratedParams.mc);
-//    Serial.print("MD: "); Serial.println(m_calibratedParams.md);
-
-    return 0;
+    return readRegister(deviceAddr(), 0xAA, &m_calibratedParams, sizeof(m_calibratedParams));
 }
 
 // ====================================================================
@@ -285,7 +218,7 @@ public:
     uint8_t calcTemp() override;
 
 protected:
-    const uint8_t i2cAddr() const override { return 0x76; }
+    const uint8_t deviceAddr() const override { return 0x76; }
     inline const uint8_t chipId() const override { return 0x60; }
 };
 
@@ -368,47 +301,33 @@ bool AltitudeSensor::isTimeToGetHum() const
         millis() - m_lastHumTime >= ((PrivateBme280*)d)->humInterval();
 }
 
-AltitudeSensor::State AltitudeSensor::checkSensor()
+uint8_t AltitudeSensor::checkSensor()
 {
-//    Serial.println("Check sensor...");
     if (d == nullptr)
     {
-        State ret;
+        uint8_t ret;
         m_sensorType = stUnknown;
-//        Serial.println("Try BME280");
         d = new PrivateBme280();
         if (ret = d->checkSensor())
         {
-//            Serial.println("Failed!");
             delete d;
 
-//            Serial.println("Try BMP085");
             d = new PrivateBmp085();
             if (ret = d->checkSensor())
-            {
-//                Serial.println("Failed!");
                 delete d;
-            }
             else
-            {
-//                Serial.println("Success!");
                 m_sensorType = BMP085;
-            }
         }
         else
         {
-//            Serial.println("Success!");
             m_sensorType = BME280;
         }
         
         if (m_sensorType == stUnknown)
-        {
             return ret;
-        }
     }
 
     m_trendMul = MaxPressBufferLenght * d->pressInterval() / 1000;
-//    Serial.print("m_trendMul = "); Serial.println(m_trendMul);
     return d->readCalibrateParams();
 }
 
@@ -487,7 +406,6 @@ const uint16_t AltitudeSensor::tempInterval() const
 
 void AltitudeSensor::startReadPress()
 {
-//    Serial.println("startReadPress()");
     if (m_sensorType == BMP085)
         ((PrivateBmp085*)d)->startReadUP();
     if (aApplication->pressState() == Querying)
@@ -523,7 +441,6 @@ void AltitudeSensor::startReadTemp()
 
 void AltitudeSensor::finishReadTemp()
 {
-//    Serial.println("finishReadTemp()");
     aApplication->setTempState(NoAction);
     if (uint8_t res = d->calcTemp())
     {

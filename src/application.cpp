@@ -1,5 +1,9 @@
 #include "application.h"
 
+#include <EEPROM.h>
+#include <avr/wdt.h>
+#include <Wire.h>
+
 #include "encoder.h"
 #include "button.h"
 
@@ -58,6 +62,8 @@ Application::Application()
 void Application::initSerial()
 {
     Serial.begin(115200);
+    Wire.begin();
+    Wire.setClock(400000);
 }
 
 void Application::run()
