@@ -96,7 +96,7 @@ private:
     void setupPins();
     void initSerial();
     void readEEPROMData();
-    void saveEEPROMData();
+    void writeEEPROMData(void *ptr, uint8_t length);
     void setupInterrupts();
 
     void reactEvents();

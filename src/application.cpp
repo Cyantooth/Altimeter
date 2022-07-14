@@ -123,9 +123,11 @@ void Application::readEEPROMData()
 {
     uint8_t* ptr = (uint8_t*)&m_eepromData;
     for (uint8_t i = 0; i < sizeof(EEPROMData); ++i)
+    {
         *(ptr + i) = EEPROM.read(i);
+    }
 
-    if (m_eepromData.gndPress < 30000 || m_eepromData.gndPress > 11000)
+    if (m_eepromData.gndPress < 90000 || m_eepromData.gndPress > 110000)
         m_eepromData.gndPress = 101325;
     if (m_eepromData.altSet <= 0 || m_eepromData.altSet > 9990)
         m_eepromData.altSet = 300;
@@ -133,6 +135,15 @@ void Application::readEEPROMData()
         m_eepromData.altUnit = AltUnits::Meters;
     if (m_eepromData.pressUnit != PressUnits::HPA && m_eepromData.pressUnit != PressUnits::mmHg)
         m_eepromData.pressUnit = PressUnits::HPA;
+}
+
+void Application::writeEEPROMData(void* ptr, uint8_t length)
+{
+    uint8_t offset = (uint8_t*)ptr - (uint8_t*)&m_eepromData;
+    for (uint8_t i = 0; i < length; ++i)
+    {
+        EEPROM.write(offset + i, *((uint8_t*)ptr + i));
+    }
 }
 
 void Application::setupInterrupts()
@@ -213,10 +224,7 @@ void Application::reactAltSet()
         clearFlag(AltSetChanged);
         m_display->printAltSet(altSet());
         m_display->drawLeveler(altSet());
-//        for (uint8_t i = 0; i < 2; i++)
-//        {
-//          EEPROM.write(i + 4, value >> ((1 - i) * 8));
-//        }
+        writeEEPROMData(&m_eepromData.altSet, sizeof(EEPROMData::altSet));
     }
 }
 
@@ -226,12 +234,7 @@ void Application::reactGndPress()
     {
         clearFlag(GndPressChanged);
         m_display->printGndPress(gndPress());
-//        for (uint8_t i = 0; i < 4; i++)
-//        {
-//          EEPROM.write(i, value >> ((3 - i) * 8));
-//        }
-//        m_altSensor->changeGndPress(m_gndPress);
-//        Serial.print("GndPress="); Serial.println(value);
+        writeEEPROMData(&m_eepromData.gndPress, sizeof(EEPROMData::gndPress));
     }
 }
 
@@ -282,7 +285,7 @@ void Application::reactButton2()
             if (m_button2->event() == ButtonEvent::beMediumPress)
             {
                 setPressUnit(pressUnit() == PressUnits::HPA ? PressUnits::mmHg : PressUnits::HPA);
-//                EEPROM.write(6, (uint8_t)CurrPressUnit);
+                writeEEPROMData(&m_eepromData.pressUnit, sizeof(EEPROMData::pressUnit));
                 m_display->printGndPress(gndPress());
             }
 
