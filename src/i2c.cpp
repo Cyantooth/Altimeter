@@ -10,7 +10,7 @@ uint8_t prepareTransmission(const uint8_t deviceAddr, const uint8_t regAddr)
 }
 
 uint8_t readRegister(
-    const uint8_t deviceAddr, const uint8_t regAddr, void* data, const size_t size)
+    const uint8_t deviceAddr, const uint8_t regAddr, void* data, const uint8_t size)
 {
     if (uint8_t ret = prepareTransmission(deviceAddr, regAddr))
         return ret;
@@ -32,6 +32,17 @@ uint8_t writeRegister(const uint8_t deviceAddr, const uint8_t regAddr, const uin
     Wire.beginTransmission(deviceAddr);
     Wire.write(regAddr);
     Wire.write(data);
+
+    return Wire.endTransmission();
+}
+
+uint8_t writeData(const uint8_t deviceAddr, const uint8_t startAddr, void* data, const uint8_t size)
+{
+    Wire.beginTransmission(deviceAddr);
+    Wire.write(startAddr);
+    uint8_t* ptr = (uint8_t*)data;
+    for (int i = size; i > 0; i--)
+        Wire.write(*(ptr + i - 1));
 
     return Wire.endTransmission();
 }

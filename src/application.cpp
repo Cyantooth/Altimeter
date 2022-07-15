@@ -4,8 +4,11 @@
 #include <avr/wdt.h>
 #include <Wire.h>
 
+#include "display.h"
+#include "altitude_sensor.h"
 #include "encoder.h"
 #include "button.h"
+#include "settings.h"
 
 Application* Application::s_instance = nullptr;
 
@@ -17,7 +20,7 @@ Application::Application()
     initSerial();
     m_display = new Display();
     m_display->clrScr();
-
+    m_rtc = new RTC();
     m_altSensor = new AltitudeSensor();
     if (uint8_t check = m_altSensor->checkSensor())
     {
@@ -28,31 +31,15 @@ Application::Application()
     else
     {
         readEEPROMData();
-        auto altSetCallback = [](int8_t dir)
-        {
-            aApplication->setAltSet(
-                aApplication->altSet() + dir * (aApplication->m_button1->pressed() ? 100 : 10));
-        };
-
-        auto gndPressCallback = [](int8_t dir)
-        {
-            uint32_t value = aApplication->gndPress();
-            if (aApplication->pressUnit() == PressUnits::mmHg)
-                value = (((float)value / 133.322) + dir) * 133.322;
-            else
-                value += dir * 100;
-
-            aApplication->setGndPress(value);
-        };
-
-        m_encoder1 = new Encoder(2, 3, altSetCallback);
-        m_encoder2 = new Encoder(14, 15, gndPressCallback);
+        m_encoder1 = new Encoder(2, 3);
+        m_encoder2 = new Encoder(14, 15);
         m_button1 = new Button(4);
         m_button2 = new Button(13);
         m_buttonA = new Button(16);
         m_buttonB = new Button(12);
 
         m_display->drawFixedElements();
+        m_timeShowMillis = millis();
         setupInterrupts();
         setFlag(AltSetChanged | GndPressChanged | AltUnitChanged | PressUnitChanged);
         setTempState(TimeToQuery); //< We need to measure temperature before pressure
@@ -82,7 +69,7 @@ void Application::run()
         m_altSensor->checkPressure();
         m_altSensor->checkHumidity();
 
-        reactEvents();
+        processEvents();
     }
 }
 
@@ -108,11 +95,11 @@ void Application::interrupt()
     m_buttonA->poll();
     m_buttonB->poll();
 
-//    if (!Flags.TimerError && CurrentMillis - TimeShowMillis >= T_Time)
-//    {
-//        TimeShowMillis += T_Time;
-//        Flags.TimeToPrintTime = true;
-    //    }
+    if (!testFlag(TimerError) && millis() - m_timeShowMillis >= T_Time)
+    {
+        m_timeShowMillis += T_Time;
+        setFlag(TimeToPrintTime);
+    }
 }
 
 void Application::int1()
@@ -174,7 +161,7 @@ void Application::setupInterrupts()
     wdt_enable(WDTO_2S);
 }
 
-void Application::reactEvents()
+void Application::processEvents()
 {
     reactTemperature();
     reactPressure();
@@ -186,6 +173,10 @@ void Application::reactEvents()
     reactAltUnitChanged();
     reactPressUnitChanged();
 
+    reactEncoders();
+
+    reactTimeSet();
+    reactTimer();
     reactButton2();
 }
 
@@ -246,7 +237,203 @@ void Application::reactGndPress()
 
 void Application::reactTimer()
 {
-    // TODO
+    if (testFlag(TimeToPrintTime))
+    {
+        m_currentTime = m_rtc->getTime(false);
+        if (testFlag(TimeEditMode))
+        {
+            m_display->printTime(
+                m_timeEditPart <= 2 ? m_editTime : m_currentTime, m_timeEditPart);
+            m_display->printDate(m_editTime, m_timeEditPart);
+        }
+        else
+        {
+            m_display->printTime(m_currentTime);
+            if (testFlag(DateShowed))
+            {
+                m_display->hideDate();
+            }
+            else
+            {
+                if (testFlag(Recording))
+                {
+                    m_display->printTimer(true);
+                    if (!testFlag(RecPause))
+                    {
+                        uint8_t dt = m_currentTime.sec >= m_lastTimerSec ?
+                            m_currentTime.sec - m_lastTimerSec :
+                            m_currentTime.sec + 60 - m_lastTimerSec;
+                        m_recTimer.sec += dt;
+                        while (m_recTimer.sec >= 60)
+                        {
+                            m_recTimer.sec -= 60;
+                            m_recTimer.min++;
+                        }
+                        while (m_recTimer.min >= 60)
+                        {
+                            m_recTimer.min -= 60;
+                            m_recTimer.hour++;
+                        }
+                        m_lastTimerSec = m_currentTime.sec;
+                    }
+                }
+                else if (testFlag(RecPause))
+                {
+                    m_display->printTimer(false);
+                    clearFlag(RecPause);
+                }
+            }
+        }
+        clearFlag(TimeToPrintTime);
+
+//        uint16_t AltDif = abs(Altitude / 100 - AltSet);
+//        bool OddSec = (m_currentTime.sec % 2);
+//        // 30 метров ≈ 100 футов = 1 эшелон
+//        if (AltDif <= 15 || (AltDif <= 30 && !OddSec))
+//            digitalWrite(LED_FL, HIGH);
+//        else
+//            digitalWrite(LED_FL, LOW);
+
+//        if (Flags.Recording && (!Flags.RecPause || OddSec))
+//            digitalWrite(LED_REC, HIGH);
+//        else
+//            digitalWrite(LED_REC, LOW);
+    }
+}
+
+void Application::reactTimeSet()
+{
+    if (testFlag(TimeEditMode))
+    {
+        auto exitTimeEditMode = [this]
+        {
+            clearFlag(TimeEditMode);
+            m_display->hideDate();
+            m_display->redrawAllTimeSegments();
+        };
+
+        // Time edit mode
+        if (millis() - m_timeEditStart >= T_TimeEditTimeout)
+        {
+            exitTimeEditMode();
+            return;
+        }
+
+        if (m_buttonA->event() == ButtonEvent::beShortPress)
+        {
+            m_buttonA->acknowledge();
+            // Подготовим этот и следующий сегменты к перерисовке
+            if (m_timeEditPart <= 2)
+            {
+                for (uint8_t j = 0; j < 10; j++)
+                {
+                    if ((TimeFixedSegments[j] == m_timeEditPart) || TimeFixedSegments[j] == m_timeEditPart + 1)
+                        m_display->redrawTimeSegment(j);
+                }
+            }
+            if (m_timeEditPart >= 2)
+            {
+                for (uint8_t j = 0; j < 10; j++)
+                {
+                    if ((DateFixedSegments[j] == m_timeEditPart) || DateFixedSegments[j] == m_timeEditPart + 1)
+                        m_display->redrawTimeSegment(j);
+                }
+            }
+
+            m_timeEditPart++;
+
+            if (m_timeEditPart == 3)
+            {
+                m_rtc->setTime(m_editTime);
+            }
+            else if (m_timeEditPart == 6)
+            {
+                m_rtc->setDate(m_editTime);
+                exitTimeEditMode();
+            }
+            m_timeEditStart = millis();
+        }
+        else if (m_buttonA->event() == ButtonEvent::beLongPress)
+        {
+            m_buttonA->acknowledge();
+            exitTimeEditMode();
+        }
+        else if (m_button1->event() == ButtonEvent::beMediumPress)
+        {
+            m_button1->acknowledge();
+            if (m_timeEditPart <= 2)
+                m_editTime.sec = 0;
+        }
+
+        if (!m_buttonA->pressed())
+        {
+            if (int8_t dv = m_encoder1->ticks())
+            {
+                switch (m_timeEditPart)
+                {
+                case 0:
+                    m_editTime.hour = (m_editTime.hour + dv) % 24;
+                    // Remainders must always be positive, but who cares
+                    while (m_editTime.hour < 0)
+                        m_editTime.hour += 24;
+                    break;
+
+                case 1:
+                    m_editTime.min = (m_editTime.min + dv) % 60;
+                    while (m_editTime.min < 0)
+                        m_editTime.min += 60;
+                    break;
+
+                case 2:
+                    m_editTime.sec = (m_editTime.sec + dv) % 60;
+                    while (m_editTime.sec < 0)
+                        m_editTime.sec += 60;
+                    break;
+
+                case 3:
+                    m_editTime.year = (m_editTime.year - 2000 + dv) % 1000 + 2000;
+                    while (m_editTime.year < 2000)
+                        m_editTime.year += 1000;
+                    break;
+
+                case 4:
+                    m_editTime.mon = (m_editTime.mon - 1 + dv) % 12 + 1;
+                    while (m_editTime.mon < 1)
+                        m_editTime.mon += 12;
+                    break;
+
+                case 5:
+                    uint8_t maxDay = daysInMonth(m_editTime.mon, m_editTime.year);
+                    m_editTime.day = (m_editTime.day - 1 + dv) % maxDay + 1;
+                    while (m_editTime.day < 1)
+                        m_editTime.day += maxDay;
+                    break;
+                }
+                m_timeEditStart = millis();
+            }
+        }
+    }
+    else if (m_buttonA->event() == ButtonEvent::beLongPress)
+    {
+        m_buttonA->acknowledge();
+        if (!testFlag(Recording))
+        {
+            // Entering into time edit mode
+            setFlag(TimeEditMode);
+            m_timeEditPart = 0;
+            setFlag(TimeToPrintTime);
+            m_editTime = m_rtc->getTime(true);
+            m_timeEditStart = millis();
+            m_display->redrawTimeSegment(2);
+            m_display->redrawTimeSegment(3);
+            m_display->redrawAllDateSegments();
+        }
+    }
+    else
+    {
+        if (!m_buttonA->pressed() && m_buttonA->event() != ButtonEvent::beNone)
+            m_buttonA->acknowledge();
+    }
 }
 
 void Application::reactAltUnitChanged()
@@ -303,6 +490,37 @@ void Application::reactButton2()
             m_button2->clear();
         }
     }
+}
+
+void Application::reactEncoders()
+{
+    if (!testFlag(TimeEditMode))
+        setAltSet(altSet() + m_encoder1->ticks() * (m_button1->pressed() ? 100 : 10));
+
+    if (int8_t ticks = m_encoder2->ticks())
+    {
+        uint32_t value = gndPress();
+        if (pressUnit() == PressUnits::mmHg)
+            value = (((float)value / 133.322) + ticks) * 133.322;
+        else
+            value += ticks * 100;
+
+        setGndPress(value);
+    }
+}
+
+int8_t Application::daysInMonth(uint8_t month, uint8_t year)
+{
+    static const int8_t days[] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
+
+    if (month > 12)
+        return -1;
+
+    int8_t result = days[month - 1];
+    if (month == 2 && year % 4 == 0 && (year % 100 != 0 || year % 400 == 0))
+        result++;
+
+    return result;
 }
 
 void Application::setAltitude(int32_t newAltitude)

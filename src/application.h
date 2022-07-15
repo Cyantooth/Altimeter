@@ -2,18 +2,14 @@
 
 #include <Arduino.h>
 
-#include "display.h"
-#include "altitude_sensor.h"
+#include "rtc.h"
 
+class Display;
+class AltitudeSensor;
+class RTC;
 class Encoder;
 class Button;
-
-struct Time
-{
-    uint8_t hour = 0;
-    uint8_t minute = 0;
-    uint8_t second = 0;      
-};
+class LED;
 
 enum ApplicationFlags
 {
@@ -31,8 +27,8 @@ enum ApplicationFlags
     FlightLevelChanged   = 1 << 11,
     TempChanged          = 1 << 12,
     DateShowed           = 1 << 13,
-//    Recording            = 1 << 14,
-//    RecPause             = 1 << 15,
+    Recording            = 1 << 14,
+    RecPause             = 1 << 15,
 };
 
 enum class AltUnits { Meters, Feets };
@@ -97,7 +93,7 @@ private:
     void writeEEPROMData(void *ptr, uint8_t length);
     void setupInterrupts();
 
-    void reactEvents();
+    void processEvents();
     void reactTemperature();
     void reactPressure();
     void reactHumidity();
@@ -105,14 +101,26 @@ private:
     void reactAltSet();
     void reactGndPress();
     void reactTimer();
+    void reactTimeSet();
     void reactAltUnitChanged();
     void reactPressUnitChanged();
     void reactButton2();
+    void reactEncoders();
+
+    int8_t daysInMonth(uint8_t month, uint8_t year);
 
 private:
     static Application* s_instance;
     Display* m_display;
     AltitudeSensor* m_altSensor;
+    RTC* m_rtc;
+
+    Encoder* m_encoder1;
+    Encoder* m_encoder2;
+    Button* m_button1;
+    Button* m_button2;
+    Button* m_buttonA;
+    Button* m_buttonB;
     
     volatile SensorState m_tempState = NoAction;
     volatile SensorState m_pressState = NoAction;
@@ -123,13 +131,13 @@ private:
     int16_t m_flightLevel = 0;
     int16_t m_temperature = 0;
     int32_t m_altitude = 0;
-
-    Encoder* m_encoder1;
-    Encoder* m_encoder2;
-    Button* m_button1;
-    Button* m_button2;
-    Button* m_buttonA;
-    Button* m_buttonB;
+    Time m_currentTime;
+    Time m_editTime;
+    Time m_recTimer;
+    uint8_t m_timeEditPart;
+    uint8_t m_lastTimerSec = 0;
+    uint32_t m_timeEditStart;
+    unsigned long m_timeShowMillis;
 };
 
 template<typename T>

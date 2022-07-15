@@ -2,6 +2,8 @@
 
 #include <Arduino.h>
 
+#include "rtc.h"
+
 #define scs PORTG |=  0b00000010
 #define ccs PORTG &= ~0b00000010
 #define srs PORTD |=  0b10000000
@@ -26,9 +28,18 @@ public:
     void printAltitude(const int32_t altitude);
     void printGndPress(const uint32_t gndPress);
     void printAltSet(const int16_t altSet);
+    void printTime(const Time& curTime, uint8_t editSegment = 100);
+    void printTimer(bool isActive);
+    void printDate(const Time& editTime, uint8_t editSegment);
+    void hideDate();
     void drawAltUnits(const AltUnits altUnit);
     void drawPressUnit(const PressUnits pressUnit);
     void drawLeveler(int16_t _altSet);
+
+    void redrawTimeSegment(uint8_t segment) { m_lastTimeArray[segment] = 255; }
+    void redrawAllTimeSegments();
+    void redrawDateSegment(uint8_t segment) { m_lastDateArray[segment] = 255; }
+    void redrawAllDateSegments();
 
 private:
     void LCD_Write_COM(uint8_t value);
@@ -75,12 +86,13 @@ private:
     void drawRuler();
 
 private:
-//    bool m_negativeAlt = false;
     uint8_t m_lastTempArray[5] = {255,255,255,255,255};
-    uint8_t lastFLArray[3] = {255,255,255};
-    uint8_t altDisplayed[6] = {255,255,255,255,255,255};
-    uint8_t altToDisplay[6] = {0,0,0,0,0,0};
-    float altToDraw = 0.0;
-    int32_t altDrawed = 32767;
+    uint8_t m_lastTimeArray[10] = {255,255,255,255,255,255,255,255,255,255};
+    uint8_t m_lastDateArray[10] = {255,255,255,255,255,255,255,255,255,255};
+    uint8_t m_lastFLArray[3] = {255,255,255};
+    uint8_t m_altDisplayed[6] = {255,255,255,255,255,255};
+    uint8_t m_altToDisplay[6] = {0,0,0,0,0,0};
+    float m_altToDraw = 0.0;
+    int32_t m_altDrawed = 32767;
     uint16_t Y_LastLeveler = 32767;
 };

@@ -5,9 +5,8 @@
 #include "fonts\Arial21.h"
 #include "fonts\ArialNarrow20.h"
 #include "inscriptions.h"
-// #include "misc.h"
 
-#include <Arduino.h>
+#include <stdint.h>
 
 // *** [ КОНСТАНТЫ ] ***
 

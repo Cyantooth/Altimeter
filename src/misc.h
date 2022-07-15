@@ -34,10 +34,10 @@
 
 //static uint32_t GndPress;
 //static uint32_t lastGndPress = 0;
-static DS1302 rtc(5, 6, 7);
+//static DS1302 rtc(5, 6, 7);
 static unsigned long TimeShowMillis;
-static uint8_t lastTimeArray[10] = {255,255,255,255,255,255,255,255,255,255};
-static uint8_t lastDateArray[10] = {255,255,255,255,255,255,255,255,255,255};
+//static uint8_t lastTimeArray[10] = {255,255,255,255,255,255,255,255,255,255};
+//static uint8_t lastDateArray[10] = {255,255,255,255,255,255,255,255,255,255};
 static uint8_t TimeEditSegment;
 static Time EditTime;
 static Time CurrentTime;

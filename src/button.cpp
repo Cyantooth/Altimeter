@@ -1,7 +1,7 @@
 #include "button.h"
 
 namespace {
-static constexpr uint16_t T_LongPress = 2500;
+static constexpr uint16_t T_LongPress = 2000;
 static constexpr uint16_t T_MedPress = 1000;
 static constexpr uint16_t T_ShortPress = 10;
 }
@@ -18,6 +18,7 @@ void Button::poll()
     unsigned long btnTime = millis() - m_pressTime;
     if (digitalRead(m_pin))
     {
+        // In released state
         if (m_event == ButtonEvent::beAcknowledge)
         {
             m_event = ButtonEvent::beNone;
@@ -25,10 +26,9 @@ void Button::poll()
         }
         else
         {
-            // Отпущена
             if (m_pressed)
             {
-                // Была нажата - отпустили
+                // Was pressed, just released
                 m_pressed = false;
                 if (m_event == ButtonEvent::beNone)
                 {
@@ -40,21 +40,21 @@ void Button::poll()
     }
     else
     {
-        // Нажата
+        // In pushed state
         if (m_pressed)
         {
-            // Была нажата (остаётся)
-            if ((m_event == ButtonEvent::beMediumPress) && (btnTime >= T_LongPress))
+            // Remain pressed
+            if (m_event == ButtonEvent::beMediumPress && btnTime >= T_LongPress)
                 m_event = ButtonEvent::beLongPress;
-            else if ((m_event == ButtonEvent::beNone) && (btnTime >= T_MedPress))
+            else if (m_event == ButtonEvent::beNone && btnTime >= T_MedPress)
                 m_event = ButtonEvent::beMediumPress;
         }
         else
         {
-            // Была отпущена - нажали
+            // Was released, just pressed
             m_pressed = true;
-            if (m_event == ButtonEvent::beNone)
-                m_pressTime = millis();
+            m_event = ButtonEvent::beNone;
+            m_pressTime = millis();
         }
     }
 }

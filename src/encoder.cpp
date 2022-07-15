@@ -1,9 +1,10 @@
 #include "encoder.h"
 
-Encoder::Encoder(const uint8_t pin1, const uint8_t pin2, void (*callback)(int8_t)):
+#include <Arduino.h>
+
+Encoder::Encoder(const uint8_t pin1, const uint8_t pin2):
     m_pin1(pin1),
-    m_pin2(pin2),
-    m_callback(callback)
+    m_pin2(pin2)
 {
     pinMode(m_pin1, INPUT_PULLUP);
     pinMode(m_pin2, INPUT_PULLUP);
@@ -27,9 +28,9 @@ void Encoder::poll()
             if (m_value != m_fixState)
             {
                 if (m_medState == 0b01)
-                    m_callback(1);
+                    m_counter++;
                 else
-                    m_callback(-1);
+                    m_counter--;
                 m_fixState = m_value;
             }
             break;
@@ -39,6 +40,13 @@ void Encoder::poll()
         }
         m_lastValue = m_value;
     }
+}
+
+int8_t Encoder::ticks()
+{
+    int8_t result = m_counter;
+    m_counter = 0;
+    return result;
 }
 
 void Encoder::getValue()

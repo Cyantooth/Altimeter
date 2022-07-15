@@ -367,7 +367,7 @@ void Display::printFlightLevel(const int16_t flightLevel)
     for (uint8_t j = 0; j < sizeof(str); j++)
     {
         uint8_t digit = str[j];
-        if (digit != lastFLArray[j])
+        if (digit != m_lastFLArray[j])
         {
             setColumnAddr(x, x + VSpeedFontWidth - 1);
             writeMemoryStart();
@@ -381,7 +381,7 @@ void Display::printFlightLevel(const int16_t flightLevel)
                 uint16_t charOffset = pgm_read_word(&VSpeedFont_offsets[digit]);
                 drawPackedBitmap(&VSpeedFont[charOffset], C_FlightLevel_H, C_FlightLevel_L, C_Alt_BG_H, C_Alt_BG_L, charLen);
             }
-            lastFLArray[j] = digit;
+            m_lastFLArray[j] = digit;
         }
         x += VSpeedFontWidth;
     }
@@ -394,26 +394,26 @@ void Display::printAltitude(const int32_t altitude)
     setPageAddr(Y_AltStart, Y_AltEnd);
     for (uint8_t i = 0; i < AltFixedDigits; i++)
     {
-        if (altToDisplay[i] != altDisplayed[i])
+        if (m_altToDisplay[i] != m_altDisplayed[i])
         {
             printAltCharFixed(i);
-            altDisplayed[i] = altToDisplay[i];
+            m_altDisplayed[i] = m_altToDisplay[i];
         }
     }
 
     setPageAddr(Y_Ext_AltStart, Y_Ext_AltEnd);
     for (uint8_t i = AltFixedDigits; i < 4; i++)
     {
-        if ((altToDisplay[i] != altDisplayed[i]) || (altToDisplay[i + 2] != altDisplayed[i + 2]))
+        if ((m_altToDisplay[i] != m_altDisplayed[i]) || (m_altToDisplay[i + 2] != m_altDisplayed[i + 2]))
         {
             printAltCharFloated(i, altitude);
-            altDisplayed[i] = altToDisplay[i];
-            altDisplayed[i + 2] = altToDisplay[i + 2];
+            m_altDisplayed[i] = m_altToDisplay[i];
+            m_altDisplayed[i + 2] = m_altToDisplay[i + 2];
         }
     }
 
     // Линейка
-    if (altToDraw != altDrawed)
+    if (m_altToDraw != m_altDrawed)
     {
         drawRuler();
         drawLeveler(aApplication->altSet());
@@ -438,6 +438,118 @@ void Display::printGndPress(const uint32_t gndPress)
 void Display::printAltSet(const int16_t altSet)
 {
     printInfoNumber(X_AltSetStart, Y_AltSetStart, altSet, C_Leveler_H, C_Leveler_L, C_Leveler_BG_H, C_Leveler_BG_L);
+}
+
+void Display::printTime(const Time& curTime, uint8_t editSegment)
+{
+    uint8_t strTime[10];
+    strTime[0] = 255;
+    strTime[1] = 255;
+    strTime[2] = curTime.hour / 10;
+    strTime[3] = curTime.hour % 10;
+    strTime[4] = 11;
+    strTime[5] = curTime.min / 10;
+    strTime[6] = curTime.min % 10;
+    strTime[7] = 11;
+    strTime[8] = curTime.sec / 10;
+    strTime[9] = curTime.sec % 10;
+
+    setPageAddr(Y_TimeStart, Y_TimeStart + timeFontHeight - 1);
+    uint16_t X = X_TimeStart;
+    for (uint8_t j = 0; j < 10; j++)
+    {
+        uint8_t digit = strTime[j];
+        if (digit != m_lastTimeArray[j])
+        {
+            setColumnAddr(X, X + timeFontWidth - 1);
+            writeMemoryStart();
+            srs;
+            if (digit == 255)
+            {
+                fillSpace(C_StatusBar_BG_H, C_StatusBar_BG_L, timeFontHeight * timeFontWidth);
+            }
+            else
+            {
+                uint16_t charLen = pgm_read_word(&timeFont_sizes[digit]);
+                uint16_t charOffset = pgm_read_word(&timeFont_offsets[digit]);
+                if (editSegment == TimeFixedSegments[j])
+                    drawPackedBitmap(&timeFont[charOffset], C_StatusBar_BG_H, C_StatusBar_BG_L, C_Time_H, C_Time_L, charLen);
+                else
+                    drawPackedBitmap(&timeFont[charOffset], C_Time_H, C_Time_L, C_StatusBar_BG_H, C_StatusBar_BG_L, charLen);
+            }
+            m_lastTimeArray[j] = digit;
+        }
+        X += timeFontWidth;
+    }
+
+    if (aApplication->testFlag(TimerMode) || aApplication->testFlag(TimeEditMode))
+    {
+        setPageAddr(Y_TimeStart + timeFontHeight + 1, Y_TimeStart + 2 * timeFontHeight);
+        X = aApplication->testFlag(TimerMode) ? X_TimeStart : X_TimeStart - timeFontWidth * 2;
+    }
+}
+
+void Display::printTimer(bool isActive)
+{
+
+}
+
+void Display::printDate(const Time &editTime, uint8_t editSegment)
+{
+    if (aApplication->testFlag(DateShowed))
+    {
+        drawFillRect(X_TimeStart - 4, StatusBarHeight, disp_x_size - X_TimeStart + 4, StatusBarHeight, C_StatusBarFrame_H, C_StatusBarFrame_L, C_StatusBar_BG_H, C_StatusBar_BG_L, 2);
+        aApplication->setFlag(DateShowed);
+    }
+    uint8_t strDate[10];
+    strDate[0] = editTime.day / 10;
+    strDate[1] = editTime.day % 10;
+    strDate[2] = 15;
+    strDate[3] = editTime.mon / 10;
+    strDate[4] = editTime.mon % 10;
+    strDate[5] = 15;
+    intToArray(editTime.year, &strDate[6]);
+
+    setPageAddr(Y_TimeStart + StatusBarHeight, Y_TimeStart + StatusBarHeight + timeFontHeight - 1);
+    uint16_t X = X_TimeStart;
+    for (uint8_t j = 0; j < 10; j++)
+    {
+        uint8_t digit = strDate[j];
+        if (!aApplication->testFlag(DateShowed) || digit != m_lastDateArray[j])
+        {
+            setColumnAddr(X, X + timeFontWidth - 1);
+            writeMemoryStart();
+            srs;
+            if (digit == 255)
+            {
+                fillSpace(C_StatusBar_BG_H, C_StatusBar_BG_L, timeFontHeight * timeFontWidth);
+            }
+            else
+            {
+                uint16_t charLen = pgm_read_word(&timeFont_sizes[digit]);
+                uint16_t charOffset = pgm_read_word(&timeFont_offsets[digit]);
+                if (aApplication->testFlag(TimeEditMode) && editSegment == DateFixedSegments[j])
+                    drawPackedBitmap(&timeFont[charOffset], C_StatusBar_BG_H, C_StatusBar_BG_L, C_Time_H, C_Time_L, charLen);
+                else
+                    drawPackedBitmap(&timeFont[charOffset], C_Time_H, C_Time_L, C_StatusBar_BG_H, C_StatusBar_BG_L, charLen);
+            }
+            m_lastDateArray[j] = digit;
+        }
+        X += timeFontWidth;
+    }
+
+    if (aApplication->testFlag(TimerMode) || aApplication->testFlag(TimeEditMode))
+    {
+        setPageAddr(Y_TimeStart + timeFontHeight + 1, Y_TimeStart + 2 * timeFontHeight);
+        X = aApplication->testFlag(TimerMode) ? X_TimeStart : X_TimeStart - timeFontWidth * 2;
+    }
+}
+
+void Display::hideDate()
+{
+    setArea(X_TimeStart - 4, StatusBarHeight, disp_x_size - 1, (StatusBarHeight << 1));
+    fillSpace(C_Alt_BG_H, C_Alt_BG_L, (disp_x_size - X_TimeStart + 4) * StatusBarHeight);
+    aApplication->clearFlag(DateShowed);
 }
 
 void Display::drawAltUnits(const AltUnits altUnit)
@@ -522,53 +634,53 @@ void Display::setAltDigitsArray(const int32_t value)
     if (value == 0)
     {
         for (uint8_t i = 0; i < 6; i++)
-            altToDisplay[i] = 0;
+            m_altToDisplay[i] = 0;
     }
     else
     {
       if (value >= 1000000)
       {
-          altToDisplay[0] = altToDisplay[1] = altToDisplay[2] = altToDisplay[3] = 9;
-          altToDisplay[4] = altToDisplay[5] = altFontHalfHeight;
+          m_altToDisplay[0] = m_altToDisplay[1] = m_altToDisplay[2] = m_altToDisplay[3] = 9;
+          m_altToDisplay[4] = m_altToDisplay[5] = altFontHalfHeight;
       }
       else
       {
-          altToDisplay[5] = (abs(value) % 100) * altFontHeight / 100;
-          altToDraw = (float)value / 100.0;
+          m_altToDisplay[5] = (abs(value) % 100) * altFontHeight / 100;
+          m_altToDraw = (float)value / 100.0;
 //          Serial.print("value = "); Serial.print(value); Serial.print("; altToDraw = "); Serial.println(altToDraw);
-          intToArray(altToDraw, &altToDisplay[0], true);
+          intToArray(m_altToDraw, &m_altToDisplay[0], true);
           if (abs(value) % 10000 >= 9950)
           {
-              if (altToDisplay[1] == 10)
+              if (m_altToDisplay[1] == 10)
               {
-                  altToDisplay[0] = 10;
-                  altToDisplay[1] = 1;
+                  m_altToDisplay[0] = 10;
+                  m_altToDisplay[1] = 1;
               }
               else
               {
-                  altToDisplay[1] = (altToDisplay[1] + 1) % 10;
-                  if (altToDisplay[1] == 0)
-                      altToDisplay[0]++;
+                  m_altToDisplay[1] = (m_altToDisplay[1] + 1) % 10;
+                  if (m_altToDisplay[1] == 0)
+                      m_altToDisplay[0]++;
               }
           }
-          if (altToDisplay[3] == 9)
-              altToDisplay[4] = altToDisplay[5];
+          if (m_altToDisplay[3] == 9)
+              m_altToDisplay[4] = m_altToDisplay[5];
           else
-              altToDisplay[4] = 0;
+              m_altToDisplay[4] = 0;
       }
     }
 }
 
 void Display::printAltCharFloated(const uint8_t pos, const long& value)
 {
-    uint8_t digit = altToDisplay[pos];
+    uint8_t digit = m_altToDisplay[pos];
     uint16_t X_Addr = pos * altFontWidth + X_AltStart;
 
     setColumnAddr(X_Addr, X_Addr + altFontWidth - 1);
     writeMemoryStart();
     srs;
 
-    int8_t Y_charOffset = altFontHalfHeight - altToDisplay[pos + 2];
+    int8_t Y_charOffset = altFontHalfHeight - m_altToDisplay[pos + 2];
     bool shift = Y_charOffset <= 0;
     if (value < 0)
         Y_charOffset = -Y_charOffset;
@@ -717,7 +829,7 @@ void Display::printAltCharFloated(const uint8_t pos, const long& value)
 
 void Display::printAltCharFixed(const uint8_t pos)
 {
-    uint8_t digit = altToDisplay[pos];
+    uint8_t digit = m_altToDisplay[pos];
     uint16_t X_Addr = pos * altFontWidth + X_AltStart;
 
     setColumnAddr(X_Addr, X_Addr + altFontWidth - 1);
@@ -730,7 +842,7 @@ void Display::printAltCharFixed(const uint8_t pos)
         drawSpace = true;
         for (uint8_t i = 0; i < pos; i++)
         {
-            if (altToDisplay[i] != 0)
+            if (m_altToDisplay[i] != 0)
             {
                 drawSpace = false;
                 break;
@@ -806,7 +918,7 @@ void Display::drawRuler()
     writeMemoryStart();
     srs;
 
-    int16_t altOffset = altToDraw + (RulerHeight >> 1);
+    int16_t altOffset = m_altToDraw + (RulerHeight >> 1);
     int8_t tmpAlt = altOffset % 100;
     while (tmpAlt < rulerFontHalfHeight)
     {
@@ -1004,12 +1116,12 @@ void Display::drawRuler()
             }
         }
     }
-    altDrawed = altToDraw;
+    m_altDrawed = m_altToDraw;
 }
 
 void Display::drawLeveler(int16_t _altSet)
 {
-    int16_t Y_new = altToDraw - _altSet + Y_Middle - LevelerHalfHeight;
+    int16_t Y_new = m_altToDraw - _altSet + Y_Middle - LevelerHalfHeight;
     if (Y_new < 0)
         Y_new = 0;
     else if (Y_new > disp_y_size - LevelerHeight)
@@ -1023,7 +1135,7 @@ void Display::drawLeveler(int16_t _altSet)
 
     setColumnAddr(X_LevelerStart, X_LevelerStart + LevelerWidth - 1);
 
-    // Стираем предыдущий символ
+    // Erase previous symbol
     uint16_t Y_start, Y_end;
     if (Y_LastLeveler < Y_new)
     {
@@ -1040,9 +1152,21 @@ void Display::drawLeveler(int16_t _altSet)
     writeMemoryStart();
     fillSpace(C_Alt_BG_H, C_Alt_BG_L, LevelerWidth * (Y_end - Y_start + 1));
 
-    // Рисуем новый символ
+    // Draw new symbol
     setPageAddr(Y_new, Y_new + LevelerHeight - 1);
     writeMemoryStart();
     drawPackedBitmap(Leveler, C_Leveler_H, C_Leveler_L, C_Leveler_BG_H, C_Leveler_BG_L, sizeof(Leveler));
     Y_LastLeveler = Y_new;
+}
+
+void Display::redrawAllTimeSegments()
+{
+    for (int i = 0; i < sizeof(m_lastTimeArray); ++i)
+        m_lastTimeArray[i] = 255;
+}
+
+void Display::redrawAllDateSegments()
+{
+    for (int i = 0; i < sizeof(m_lastDateArray); ++i)
+        m_lastDateArray[i] = 255;
 }

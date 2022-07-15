@@ -1,12 +1,13 @@
 #pragma once
 
-#include <Arduino.h>
+#include <stdint.h>
 
 class Encoder
 {
 public:
-    explicit Encoder(const uint8_t _pin1, const uint8_t _pin2, void(*callback)(int8_t));
+    Encoder(const uint8_t _pin1, const uint8_t _pin2);
     void poll();
+    int8_t ticks();
 
 private:
     void getValue();
@@ -16,5 +17,5 @@ private:
     uint8_t m_medState;
     uint8_t m_pin1;
     uint8_t m_pin2;
-    void(*m_callback)(int8_t);
+    int8_t m_counter = 0;
 };
