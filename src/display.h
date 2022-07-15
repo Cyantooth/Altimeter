@@ -21,20 +21,23 @@ public:
     Display();
     
     void clrScr();
-    void drawFixedElements();
 
     void printTemp(const int16_t temperature);
     void printFlightLevel(const int16_t flightLevel);
     void printAltitude(const int32_t altitude);
     void printGndPress(const uint32_t gndPress);
     void printAltSet(const int16_t altSet);
-    void printTime(const Time& curTime, uint8_t editSegment = 100);
-    void printTimer(bool isActive);
+    void printTime(const Time& curTime, uint8_t editPart = 100);
+    void printTimer(const Time& timer);
+    void hideTimer();
     void printDate(const Time& editTime, uint8_t editSegment);
     void hideDate();
+
+    void drawFixedElements();
     void drawAltUnits(const AltUnits altUnit);
     void drawPressUnit(const PressUnits pressUnit);
     void drawLeveler(int16_t _altSet);
+    void drawTimerBackground(bool inTimerColors);
 
     void redrawTimeSegment(uint8_t segment) { m_lastTimeArray[segment] = 255; }
     void redrawAllTimeSegments();

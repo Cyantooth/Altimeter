@@ -11,7 +11,7 @@ Time RTC::getTime(bool includeDate)
     if (includeDate)
     {
         readRegister(DeviceAddr, 0x00, &rawData, 7);
-        result.day = ((rawData.date & 0b00110000) >> 4) * 10 + (rawData.seconds & 0b1111);
+        result.day = ((rawData.date & 0b00110000) >> 4) * 10 + (rawData.date & 0b1111);
         result.mon = ((rawData.month & 0b00010000) >> 4) * 10 + (rawData.month & 0b1111);
         result.year = ((rawData.year & 0b11110000) >> 4) * 10 + (rawData.year & 0b1111) + 2000;
     }

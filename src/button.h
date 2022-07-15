@@ -1,16 +1,17 @@
 #pragma once
 
-#include <Arduino.h>
+#include <stdint.h>
 
-enum class ButtonEvent { beNone, beShortPress, beMediumPress, beLongPress, beAcknowledge };
+enum class ButtonEvent { beNone = 0, beShortPress, beMediumPress, beLongPress, beAcknowledge };
 
 class Button
 {
 public:
     explicit Button(uint8_t pin);
     void poll();
-    bool pressed() const { return m_pressed; }
-    ButtonEvent event() const { return m_event; }
+    inline bool pressed() const { return m_pressed; }
+    inline ButtonEvent event() const { return m_event; }
+    inline bool hasEvent() const { return m_event != ButtonEvent::beNone && m_event != ButtonEvent::beAcknowledge; }
     void acknowledge();
     void clear();
 

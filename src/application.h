@@ -63,6 +63,7 @@ public:
     bool testFlag(uint16_t flag) const;
     void setFlag(uint16_t flag);
     void clearFlag(uint16_t flag);
+    void changeFlag(uint16_t flag);
 
     void setTempState(SensorState newTempState);
     void setPressState(SensorState newPressState);
@@ -82,7 +83,6 @@ public:
     inline int16_t flightLevel() const { return m_flightLevel; }
     void setFlightLevel(int16_t newFlightLevel);
 
-//    inline int16_t temperature() const { return m_temperature; }
     void setTemperature(int16_t newTemperature);
     void setAltitude(int32_t newAltitude);
 
@@ -100,6 +100,7 @@ private:
     void reactVSpeed();
     void reactAltSet();
     void reactGndPress();
+    void reactRTC();
     void reactTimer();
     void reactTimeSet();
     void reactAltUnitChanged();

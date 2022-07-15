@@ -1,5 +1,7 @@
 #include "button.h"
 
+#include <Arduino.h>
+
 namespace {
 static constexpr uint16_t T_LongPress = 2000;
 static constexpr uint16_t T_MedPress = 1000;

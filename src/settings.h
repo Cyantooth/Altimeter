@@ -165,8 +165,8 @@ static constexpr uint8_t LevelerHalfHeight = LevelerHeight / 2;
     //static constexpr uint8_t C_StatusBar_BG_H = 0x18;
     //static constexpr uint8_t C_StatusBar_BG_L = 0xE4;
 
-    static constexpr uint8_t C_Timer_H = 0xCB;
-    static constexpr uint8_t C_Timer_L = 0xEF;
+    static constexpr uint8_t C_Timer_H = 0xFE;
+    static constexpr uint8_t C_Timer_L = 0x99;
     static constexpr uint8_t C_Timer_BG_H = 0x10;
     static constexpr uint8_t C_Timer_BG_L = 0x00;
     static constexpr uint8_t C_TimerFrame_H = 0x20;
@@ -195,5 +195,5 @@ static constexpr uint8_t LevelerHalfHeight = LevelerHeight / 2;
     static constexpr uint8_t C_WarningText_BG_L = 0x00;
 #endif
 
-const uint8_t TimeFixedSegments[10] = {255,255,0,0,255,1,1,255,2,2};
+const uint8_t TimeFixedSegments[10] = {255,0,0,255,1,1,255,2,2,255};
 const uint8_t DateFixedSegments[10] = {5,5,255,4,4,255,3,3,3,3};

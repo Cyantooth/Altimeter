@@ -35,8 +35,8 @@ Application::Application()
         m_encoder2 = new Encoder(14, 15);
         m_button1 = new Button(4);
         m_button2 = new Button(13);
-        m_buttonA = new Button(16);
-        m_buttonB = new Button(12);
+        m_buttonA = new Button(12);
+        m_buttonB = new Button(16);
 
         m_display->drawFixedElements();
         m_timeShowMillis = millis();
@@ -169,7 +169,7 @@ void Application::processEvents()
     reactVSpeed();
     reactAltSet();
     reactGndPress();
-    reactTimer();
+    reactRTC();
     reactAltUnitChanged();
     reactPressUnitChanged();
 
@@ -235,7 +235,7 @@ void Application::reactGndPress()
     }
 }
 
-void Application::reactTimer()
+void Application::reactRTC()
 {
     if (testFlag(TimeToPrintTime))
     {
@@ -257,7 +257,7 @@ void Application::reactTimer()
             {
                 if (testFlag(Recording))
                 {
-                    m_display->printTimer(true);
+                    m_display->printTimer(m_recTimer);
                     if (!testFlag(RecPause))
                     {
                         uint8_t dt = m_currentTime.sec >= m_lastTimerSec ?
@@ -279,7 +279,7 @@ void Application::reactTimer()
                 }
                 else if (testFlag(RecPause))
                 {
-                    m_display->printTimer(false);
+                    m_display->hideTimer();
                     clearFlag(RecPause);
                 }
             }
@@ -298,6 +298,72 @@ void Application::reactTimer()
 //            digitalWrite(LED_REC, HIGH);
 //        else
 //            digitalWrite(LED_REC, LOW);
+    }
+}
+
+void Application::reactTimer()
+{
+    if (!testFlag(TimeEditMode))
+    {
+        switch (m_buttonB->event())
+        {
+        case ButtonEvent::beShortPress:
+            if (testFlag(Recording))
+            {
+                // Recording is in progress. Toggle pause
+                changeFlag(RecPause);
+                m_lastTimerSec = m_currentTime.sec;
+            }
+            else
+            {
+                // Start recording
+                m_recTimer.hour = m_recTimer.min = m_recTimer.sec = 0;
+                setFlag(Recording);
+                clearFlag(RecPause);
+                m_lastTimerSec = m_currentTime.sec;
+                m_display->drawTimerBackground(true);
+            }
+            m_buttonB->acknowledge();
+            break;
+
+        case ButtonEvent::beLongPress:
+            if (testFlag(Recording))
+            {
+                clearFlag(Recording);
+                setFlag(RecPause);
+            }
+            m_buttonB->acknowledge();
+            break;
+
+        default:
+            if (!m_buttonB->pressed() && m_buttonB->hasEvent())
+                m_buttonB->acknowledge();
+        }
+
+//        // Запись изменения состояния в EEPROM
+//        uint8_t TimerState = (Flags.Recording?1:0) | (Flags.RecPause?2:0);
+//        if (LastTimerState != TimerState)
+//        {
+//            uint8_t ROMcnt = 7;
+//            EEPROM.write(ROMcnt++, TimerState);
+//            if (Flags.RecPause)
+//            {
+//                EEPROM.write(ROMcnt++, RecTimer.hour);
+//                EEPROM.write(ROMcnt++, RecTimer.min);
+//                EEPROM.write(ROMcnt++, RecTimer.sec);
+//            }
+//            else
+//            {
+//                EEPROM.write(ROMcnt++, CurrentTime.hour);
+//                EEPROM.write(ROMcnt++, CurrentTime.min);
+//                EEPROM.write(ROMcnt++, CurrentTime.sec);
+//            }
+//            LastTimerState = TimerState;
+//        }
+    }
+    else
+    {
+        m_buttonB->acknowledge();
     }
 }
 
@@ -424,14 +490,15 @@ void Application::reactTimeSet()
             setFlag(TimeToPrintTime);
             m_editTime = m_rtc->getTime(true);
             m_timeEditStart = millis();
+            m_display->redrawTimeSegment(1);
             m_display->redrawTimeSegment(2);
-            m_display->redrawTimeSegment(3);
+            m_display->drawTimerBackground(false);
             m_display->redrawAllDateSegments();
         }
     }
     else
     {
-        if (!m_buttonA->pressed() && m_buttonA->event() != ButtonEvent::beNone)
+        if (!m_buttonA->pressed() && m_buttonA->hasEvent())
             m_buttonA->acknowledge();
     }
 }
@@ -471,24 +538,21 @@ void Application::reactButton2()
             m_button2->acknowledge();
         }
     }
-    else
+    else if (m_button2->hasEvent())
     {
-        if (m_button2->event() != ButtonEvent::beNone)
+        if (m_button2->event() == ButtonEvent::beMediumPress)
         {
-            if (m_button2->event() == ButtonEvent::beMediumPress)
-            {
-                setPressUnit(pressUnit() == PressUnits::HPA ? PressUnits::mmHg : PressUnits::HPA);
-                writeEEPROMData(&m_eepromData.pressUnit, sizeof(EEPROMData::pressUnit));
-                m_display->printGndPress(gndPress());
-            }
-
-            if (testFlag(PressUnitChangeReady))
-            {
-                clearFlag(PressUnitChangeReady);
-                m_display->drawPressUnit(pressUnit());
-            }
-            m_button2->clear();
+            setPressUnit(pressUnit() == PressUnits::HPA ? PressUnits::mmHg : PressUnits::HPA);
+            writeEEPROMData(&m_eepromData.pressUnit, sizeof(EEPROMData::pressUnit));
+            m_display->printGndPress(gndPress());
         }
+
+        if (testFlag(PressUnitChangeReady))
+        {
+            clearFlag(PressUnitChangeReady);
+            m_display->drawPressUnit(pressUnit());
+        }
+        m_button2->clear();
     }
 }
 
@@ -611,4 +675,9 @@ void Application::setFlag(uint16_t flag)
 void Application::clearFlag(uint16_t flag)
 {
     m_flags &= ~flag;
+}
+
+void Application::changeFlag(uint16_t flag)
+{
+    m_flags ^= flag;
 }

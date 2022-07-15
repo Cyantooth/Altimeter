@@ -440,19 +440,19 @@ void Display::printAltSet(const int16_t altSet)
     printInfoNumber(X_AltSetStart, Y_AltSetStart, altSet, C_Leveler_H, C_Leveler_L, C_Leveler_BG_H, C_Leveler_BG_L);
 }
 
-void Display::printTime(const Time& curTime, uint8_t editSegment)
+void Display::printTime(const Time& curTime, uint8_t editPart)
 {
     uint8_t strTime[10];
     strTime[0] = 255;
-    strTime[1] = 255;
-    strTime[2] = curTime.hour / 10;
-    strTime[3] = curTime.hour % 10;
-    strTime[4] = 11;
-    strTime[5] = curTime.min / 10;
-    strTime[6] = curTime.min % 10;
-    strTime[7] = 11;
-    strTime[8] = curTime.sec / 10;
-    strTime[9] = curTime.sec % 10;
+    strTime[1] = curTime.hour / 10;
+    strTime[2] = curTime.hour % 10;
+    strTime[3] = 11;
+    strTime[4] = curTime.min / 10;
+    strTime[5] = curTime.min % 10;
+    strTime[6] = 11;
+    strTime[7] = curTime.sec / 10;
+    strTime[8] = curTime.sec % 10;
+    strTime[9] = 255;
 
     setPageAddr(Y_TimeStart, Y_TimeStart + timeFontHeight - 1);
     uint16_t X = X_TimeStart;
@@ -472,7 +472,7 @@ void Display::printTime(const Time& curTime, uint8_t editSegment)
             {
                 uint16_t charLen = pgm_read_word(&timeFont_sizes[digit]);
                 uint16_t charOffset = pgm_read_word(&timeFont_offsets[digit]);
-                if (editSegment == TimeFixedSegments[j])
+                if (editPart == TimeFixedSegments[j])
                     drawPackedBitmap(&timeFont[charOffset], C_StatusBar_BG_H, C_StatusBar_BG_L, C_Time_H, C_Time_L, charLen);
                 else
                     drawPackedBitmap(&timeFont[charOffset], C_Time_H, C_Time_L, C_StatusBar_BG_H, C_StatusBar_BG_L, charLen);
@@ -489,12 +489,53 @@ void Display::printTime(const Time& curTime, uint8_t editSegment)
     }
 }
 
-void Display::printTimer(bool isActive)
+void Display::printTimer(const Time& timer)
 {
+    uint8_t strTimer[10];
+    strTimer[0] = 255;
+    strTimer[1] = timer.hour / 10;
+    strTimer[2] = timer.hour % 10;
+    strTimer[3] = 11;
+    strTimer[4] = timer.min / 10;
+    strTimer[5] = timer.min % 10;
+    strTimer[6] = 11;
+    strTimer[7] = timer.sec / 10;
+    strTimer[8] = timer.sec % 10;
+    strTimer[9] = 255;
 
+    setPageAddr(Y_TimeStart + StatusBarHeight, Y_TimeStart + StatusBarHeight + timeFontHeight - 1);
+    uint16_t X = X_TimeStart;
+    for (uint8_t j = 0; j < 10; j++)
+    {
+        uint8_t digit = strTimer[j];
+        if (!aApplication->testFlag(DateShowed) || digit != m_lastDateArray[j])
+        {
+            setColumnAddr(X, X + timeFontWidth - 1);
+            writeMemoryStart();
+            srs;
+            if (digit == 255)
+            {
+                fillSpace(C_Timer_BG_H, C_Timer_BG_L, timeFontHeight * timeFontWidth);
+            }
+            else
+            {
+                uint16_t charLen = pgm_read_word(&timeFont_sizes[digit]);
+                uint16_t charOffset = pgm_read_word(&timeFont_offsets[digit]);
+                drawPackedBitmap(&timeFont[charOffset], C_Timer_H, C_Timer_L, C_Timer_BG_H, C_Timer_BG_L, charLen);
+            }
+            m_lastDateArray[j] = digit;
+        }
+        X += timeFontWidth;
+    }
 }
 
-void Display::printDate(const Time &editTime, uint8_t editSegment)
+void Display::hideTimer()
+{
+    setArea(X_TimeStart - 4, StatusBarHeight, disp_x_size - 1, (StatusBarHeight << 1) - 1);
+    fillSpace(C_Alt_BG_H, C_Alt_BG_L, (disp_x_size - X_TimeStart) * StatusBarHeight);
+}
+
+void Display::printDate(const Time &editTime, uint8_t editPart)
 {
     if (aApplication->testFlag(DateShowed))
     {
@@ -528,7 +569,7 @@ void Display::printDate(const Time &editTime, uint8_t editSegment)
             {
                 uint16_t charLen = pgm_read_word(&timeFont_sizes[digit]);
                 uint16_t charOffset = pgm_read_word(&timeFont_offsets[digit]);
-                if (aApplication->testFlag(TimeEditMode) && editSegment == DateFixedSegments[j])
+                if (aApplication->testFlag(TimeEditMode) && editPart == DateFixedSegments[j])
                     drawPackedBitmap(&timeFont[charOffset], C_StatusBar_BG_H, C_StatusBar_BG_L, C_Time_H, C_Time_L, charLen);
                 else
                     drawPackedBitmap(&timeFont[charOffset], C_Time_H, C_Time_L, C_StatusBar_BG_H, C_StatusBar_BG_L, charLen);
@@ -538,11 +579,11 @@ void Display::printDate(const Time &editTime, uint8_t editSegment)
         X += timeFontWidth;
     }
 
-    if (aApplication->testFlag(TimerMode) || aApplication->testFlag(TimeEditMode))
-    {
-        setPageAddr(Y_TimeStart + timeFontHeight + 1, Y_TimeStart + 2 * timeFontHeight);
-        X = aApplication->testFlag(TimerMode) ? X_TimeStart : X_TimeStart - timeFontWidth * 2;
-    }
+//    if (aApplication->testFlag(TimerMode) || aApplication->testFlag(TimeEditMode))
+//    {
+//        setPageAddr(Y_TimeStart + timeFontHeight + 1, Y_TimeStart + 2 * timeFontHeight);
+//        X = aApplication->testFlag(TimerMode) ? X_TimeStart : X_TimeStart - timeFontWidth * 2;
+//    }
 }
 
 void Display::hideDate()
@@ -630,7 +671,6 @@ void Display::intToArray(const float value, uint8_t* array, bool mainAlt, uint8_
 
 void Display::setAltDigitsArray(const int32_t value)
 {
-//    m_negativeAlt = value < 0;
     if (value == 0)
     {
         for (uint8_t i = 0; i < 6; i++)
@@ -1055,19 +1095,12 @@ void Display::drawRuler()
         else
         {
             if ((RelAlt > 0) && (RelAlt == altStartFrame))
-            {
-                // Входим в кадр
                 inFrame = true;
-            }
             else
-            {
                 prepareColor(BG_H, BG_L);
-            }
         }
         if (inFrame)
-        {
             Y_Frame = altStartFrame - RelAlt;
-        }
 
         // Рисуем линейку
         uint8_t x_Divider;
@@ -1157,6 +1190,37 @@ void Display::drawLeveler(int16_t _altSet)
     writeMemoryStart();
     drawPackedBitmap(Leveler, C_Leveler_H, C_Leveler_L, C_Leveler_BG_H, C_Leveler_BG_L, sizeof(Leveler));
     Y_LastLeveler = Y_new;
+}
+
+void Display::drawTimerBackground(bool inTimerColors)
+{
+
+    if (inTimerColors)
+    {
+        drawFillRect(
+            X_TimeStart - 4,
+            StatusBarHeight,
+            disp_x_size - X_TimeStart + 4,
+            StatusBarHeight - 1,
+            C_TimerFrame_H,
+            C_TimerFrame_L,
+            C_Timer_BG_H,
+            C_Timer_BG_L,
+            2);
+    }
+    else
+    {
+        drawFillRect(
+            X_TimeStart - 4,
+            StatusBarHeight,
+            disp_x_size - X_TimeStart + 4,
+            StatusBarHeight - 1,
+            C_StatusBarFrame_H,
+            C_StatusBarFrame_L,
+            C_StatusBar_BG_H,
+            C_StatusBar_BG_L,
+            2);
+    }
 }
 
 void Display::redrawAllTimeSegments()
