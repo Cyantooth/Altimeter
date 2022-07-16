@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Arduino.h>
+#include <stdint.h>
 
 #include "rtc.h"
 
@@ -14,10 +14,10 @@ class LED;
 enum ApplicationFlags
 {
     AltSensorError       = 1 << 0,
-    TimerError           = 1 << 1,
+    TimerError           = 1 << 1, //< Currently not used
     TimeToPrintTime      = 1 << 2,
     TimeEditMode         = 1 << 3,
-    TimerMode            = 1 << 4,
+    VertSpeedChanged     = 1 << 4,
     PressUnitChangeReady = 1 << 5,
     PressUnitChanged     = 1 << 6,
     AltUnitChanged       = 1 << 7,
@@ -49,6 +49,8 @@ public:
     } __attribute__((packed));
 
     Application();
+    ~Application();
+
     static Application* instance() { return s_instance; }
 
     void run();
@@ -84,10 +86,13 @@ public:
     void setFlightLevel(int16_t newFlightLevel);
 
     void setTemperature(int16_t newTemperature);
+
+    inline int32_t altitude() const { return m_altitude; }
     void setAltitude(int32_t newAltitude);
 
+    void setVSpeed(int16_t newVSpeed);
+
 private:
-    void setupPins();
     void initSerial();
     void readEEPROMData();
     void writeEEPROMData(void *ptr, uint8_t length);
@@ -112,16 +117,18 @@ private:
 
 private:
     static Application* s_instance;
-    Display* m_display;
-    AltitudeSensor* m_altSensor;
-    RTC* m_rtc;
+    Display* m_display = nullptr;
+    AltitudeSensor* m_altSensor = nullptr;
+    RTC* m_rtc = nullptr;
 
-    Encoder* m_encoder1;
-    Encoder* m_encoder2;
-    Button* m_button1;
-    Button* m_button2;
-    Button* m_buttonA;
-    Button* m_buttonB;
+    Encoder* m_encoder1 = nullptr;
+    Encoder* m_encoder2 = nullptr;
+    Button* m_button1 = nullptr;
+    Button* m_button2 = nullptr;
+    Button* m_buttonA = nullptr;
+    Button* m_buttonB = nullptr;
+    LED* m_ledAlt = nullptr;
+    LED* m_ledRec = nullptr;
     
     volatile SensorState m_tempState = NoAction;
     volatile SensorState m_pressState = NoAction;
@@ -132,6 +139,7 @@ private:
     int16_t m_flightLevel = 0;
     int16_t m_temperature = 0;
     int32_t m_altitude = 0;
+    int16_t m_vSpeed = 0;
     Time m_currentTime;
     Time m_editTime;
     Time m_recTimer;

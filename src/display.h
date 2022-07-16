@@ -1,6 +1,7 @@
 #pragma once
 
-#include <Arduino.h>
+#include <stdint.h>
+#include <avr/pgmspace.h>
 
 #include "rtc.h"
 
@@ -32,12 +33,14 @@ public:
     void hideTimer();
     void printDate(const Time& editTime, uint8_t editSegment);
     void hideDate();
+    void printVSpeed(int16_t vSpeed);
 
     void drawFixedElements();
     void drawAltUnits(const AltUnits altUnit);
     void drawPressUnit(const PressUnits pressUnit);
     void drawLeveler(int16_t _altSet);
     void drawTimerBackground(bool inTimerColors);
+    void drawVSpeed(const int16_t value, const uint8_t warningLevel);
 
     void redrawTimeSegment(uint8_t segment) { m_lastTimeArray[segment] = 255; }
     void redrawAllTimeSegments();
@@ -95,6 +98,7 @@ private:
     uint8_t m_lastFLArray[3] = {255,255,255};
     uint8_t m_altDisplayed[6] = {255,255,255,255,255,255};
     uint8_t m_altToDisplay[6] = {0,0,0,0,0,0};
+    uint8_t lastVSpeedArray[5] = {255,255,255,255,255};
     float m_altToDraw = 0.0;
     int32_t m_altDrawed = 32767;
     uint16_t Y_LastLeveler = 32767;

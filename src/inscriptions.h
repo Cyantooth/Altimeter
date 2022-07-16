@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Arduino.h>
+#include <avr/pgmspace.h>
 
 const uint8_t LevelerWidth = 14;
 const uint8_t LevelerHeight = 29;

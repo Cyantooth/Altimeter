@@ -1,13 +1,15 @@
 #include "application.h"
 
+#include <Arduino.h>
 #include <EEPROM.h>
 #include <avr/wdt.h>
 #include <Wire.h>
 
-#include "display.h"
 #include "altitude_sensor.h"
-#include "encoder.h"
 #include "button.h"
+#include "display.h"
+#include "encoder.h"
+#include "led.h"
 #include "settings.h"
 
 Application* Application::s_instance = nullptr;
@@ -16,7 +18,6 @@ Application::Application()
 {
     s_instance = this;
     wdt_disable();
-    setupPins();
     initSerial();
     m_display = new Display();
     m_display->clrScr();
@@ -37,13 +38,31 @@ Application::Application()
         m_button2 = new Button(13);
         m_buttonA = new Button(12);
         m_buttonB = new Button(16);
+        m_ledAlt = new LED(17);
+        m_ledRec = new LED(18);
 
         m_display->drawFixedElements();
         m_timeShowMillis = millis();
         setupInterrupts();
-        setFlag(AltSetChanged | GndPressChanged | AltUnitChanged | PressUnitChanged);
+        setFlag(AltSetChanged | GndPressChanged | AltUnitChanged | PressUnitChanged | VertSpeedChanged);
         setTempState(TimeToQuery); //< We need to measure temperature before pressure
     }
+}
+
+Application::~Application()
+{
+    if (m_ledRec) delete m_ledRec;
+    if (m_ledAlt) delete m_ledAlt;
+    if (m_buttonB) delete m_buttonB;
+    if (m_buttonA) delete m_buttonA;
+    if (m_button2) delete m_button2;
+    if (m_button1) delete m_button1;
+    if (m_encoder2) delete m_encoder2;
+    if (m_encoder1) delete m_encoder1;
+    delete m_altSensor;
+    delete m_rtc;
+    delete m_display;
+    s_instance = nullptr;
 }
 
 void Application::initSerial()
@@ -190,7 +209,7 @@ void Application::reactPressure()
 
     if (testFlag(AltitudeChanged))
     {
-        m_display->printAltitude(m_altitude);
+        m_display->printAltitude(altitude());
         clearFlag(AltitudeChanged);
     }
 }
@@ -202,7 +221,19 @@ void Application::reactHumidity()
 
 void Application::reactVSpeed()
 {
-    // TODO
+    if (testFlag(VertSpeedChanged))
+    {
+        uint8_t warningLevel;
+        clearFlag(VertSpeedChanged);
+        if (abs(m_vSpeed) >= 100)
+            warningLevel = 2;
+        else if (abs(m_vSpeed) >= 50)
+            warningLevel = 1;
+        else
+            warningLevel = 0;
+        m_display->printVSpeed(m_vSpeed);
+        m_display->drawVSpeed(m_vSpeed, warningLevel);
+    }
 }
 
 void Application::reactTemperature()
@@ -230,6 +261,7 @@ void Application::reactGndPress()
     if (testFlag(GndPressChanged))
     {
         clearFlag(GndPressChanged);
+        m_altSensor->gndChanged();
         m_display->printGndPress(gndPress());
         writeEEPROMData(&m_eepromData.gndPress, sizeof(EEPROMData::gndPress));
     }
@@ -286,18 +318,11 @@ void Application::reactRTC()
         }
         clearFlag(TimeToPrintTime);
 
-//        uint16_t AltDif = abs(Altitude / 100 - AltSet);
-//        bool OddSec = (m_currentTime.sec % 2);
-//        // 30 метров ≈ 100 футов = 1 эшелон
-//        if (AltDif <= 15 || (AltDif <= 30 && !OddSec))
-//            digitalWrite(LED_FL, HIGH);
-//        else
-//            digitalWrite(LED_FL, LOW);
-
-//        if (Flags.Recording && (!Flags.RecPause || OddSec))
-//            digitalWrite(LED_REC, HIGH);
-//        else
-//            digitalWrite(LED_REC, LOW);
+        uint16_t dif = abs(altitude() / 100 - altSet());
+        bool oddSec = (m_currentTime.sec % 2);
+        // 30 метров ≈ 100 футов = 1 эшелон
+        m_ledAlt->light(dif <= 15 || (dif <= 30 && !oddSec));
+        m_ledRec->light(testFlag(Recording) && (!testFlag(RecPause) || oddSec));
     }
 }
 
@@ -587,6 +612,15 @@ int8_t Application::daysInMonth(uint8_t month, uint8_t year)
     return result;
 }
 
+void Application::setVSpeed(int16_t newVSpeed)
+{
+    if (m_vSpeed == newVSpeed)
+        return;
+
+    m_vSpeed = newVSpeed;
+    setFlag(VertSpeedChanged);
+}
+
 void Application::setAltitude(int32_t newAltitude)
 {
     if (m_altitude == newAltitude)
@@ -594,12 +628,6 @@ void Application::setAltitude(int32_t newAltitude)
 
     m_altitude = limit(-99900, newAltitude, 999900);
     setFlag(AltitudeChanged);
-}
-
-void Application::setupPins()
-{
-//    pinmode(17, OUTPUT);
-//    pinmode(18, OUTPUT);
 }
 
 void Application::setHumState(SensorState newHumState)

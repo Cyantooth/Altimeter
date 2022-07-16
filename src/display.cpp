@@ -482,11 +482,11 @@ void Display::printTime(const Time& curTime, uint8_t editPart)
         X += timeFontWidth;
     }
 
-    if (aApplication->testFlag(TimerMode) || aApplication->testFlag(TimeEditMode))
-    {
-        setPageAddr(Y_TimeStart + timeFontHeight + 1, Y_TimeStart + 2 * timeFontHeight);
-        X = aApplication->testFlag(TimerMode) ? X_TimeStart : X_TimeStart - timeFontWidth * 2;
-    }
+//    if (aApplication->testFlag(TimerMode) || aApplication->testFlag(TimeEditMode))
+//    {
+//        setPageAddr(Y_TimeStart + timeFontHeight + 1, Y_TimeStart + 2 * timeFontHeight);
+//        X = aApplication->testFlag(TimerMode) ? X_TimeStart : X_TimeStart - timeFontWidth * 2;
+//    }
 }
 
 void Display::printTimer(const Time& timer)
@@ -503,7 +503,7 @@ void Display::printTimer(const Time& timer)
     strTimer[8] = timer.sec % 10;
     strTimer[9] = 255;
 
-    setPageAddr(Y_TimeStart + StatusBarHeight, Y_TimeStart + StatusBarHeight + timeFontHeight - 1);
+    setPageAddr(Y_DateStart, Y_DateStart + timeFontHeight - 1);
     uint16_t X = X_TimeStart;
     for (uint8_t j = 0; j < 10; j++)
     {
@@ -551,7 +551,7 @@ void Display::printDate(const Time &editTime, uint8_t editPart)
     strDate[5] = 15;
     intToArray(editTime.year, &strDate[6]);
 
-    setPageAddr(Y_TimeStart + StatusBarHeight, Y_TimeStart + StatusBarHeight + timeFontHeight - 1);
+    setPageAddr(Y_DateStart, Y_DateStart + timeFontHeight - 1);
     uint16_t X = X_TimeStart;
     for (uint8_t j = 0; j < 10; j++)
     {
@@ -591,6 +591,44 @@ void Display::hideDate()
     setArea(X_TimeStart - 4, StatusBarHeight, disp_x_size - 1, (StatusBarHeight << 1));
     fillSpace(C_Alt_BG_H, C_Alt_BG_L, (disp_x_size - X_TimeStart + 4) * StatusBarHeight);
     aApplication->clearFlag(DateShowed);
+}
+
+void Display::printVSpeed(int16_t vSpeed)
+{
+    uint8_t digits[5];
+
+    setPageAddr(Y_VSpeedStart, Y_VSpeedStart + VSpeedFontHeight - 1);
+    intToArray(vSpeed, &digits[0]);
+    digits[4] = digits[3];
+    digits[3] = 11; // Dot
+
+    bool showDigits = false;
+    uint16_t X = X_VSpeedStart;
+    for (uint8_t k = 0; k < sizeof(digits); k++)
+    {
+        uint8_t digit = digits[k];
+        if (digit || (k == sizeof(digits) - 3))
+            showDigits = true;
+        if (digit != lastVSpeedArray[k])
+        {
+            setColumnAddr(X, X + VSpeedFontWidth - 1);
+            writeMemoryStart();
+            srs;
+
+            if (showDigits)
+            {
+                uint16_t charLen = pgm_read_word(&VSpeedFont_sizes[digit]);
+                uint16_t charOffset = pgm_read_word(&VSpeedFont_offsets[digit]);
+                drawPackedBitmap(&VSpeedFont[charOffset], C_VSpeed_H, C_VSpeed_L, C_VSpeed_BG_H , C_VSpeed_BG_L, charLen);
+            }
+            else
+            {
+                fillSpace(C_VSpeed_BG_H , C_VSpeed_BG_L, VSpeedFontHeight * VSpeedFontWidth);
+            }
+            lastVSpeedArray[k] = digit;
+        }
+        X += VSpeedFontWidth;
+    }
 }
 
 void Display::drawAltUnits(const AltUnits altUnit)
@@ -1221,6 +1259,223 @@ void Display::drawTimerBackground(bool inTimerColors)
             C_StatusBar_BG_L,
             2);
     }
+}
+
+void Display::drawVSpeed(const int16_t value, const uint8_t warningLevel)
+{
+    static uint8_t lastWarningLevel = 255;
+    static uint16_t Y_LastBound = 0;
+
+    bool neg = (value < 0);
+    uint16_t LogIndex = neg ? -value : value;
+    if (LogIndex > MaxVSpeed)
+        LogIndex = MaxVSpeed;
+    uint8_t Y_offset = pgm_read_byte(&Logarithms[LogIndex]);
+    uint16_t Y_bound = neg ? Y_VSpeedZero + Y_offset : Y_VSpeedZero - Y_offset;
+
+#define a Y_bound
+#define b Y_LastBound
+#define c Y_VSpeedZero
+#define H VSpeedArrowHeight
+
+    if (a == b && lastWarningLevel == warningLevel)
+        return;
+
+    int16_t Y_ClearStart, Y_ClearEnd;
+    int16_t Y_DrawStart, Y_DrawEnd;
+
+//    Serial.print("a = "); Serial.print(a); Serial.print("; b = "); Serial.print(b); Serial.print("; c = "); Serial.println(c);
+    if (a < b)
+    {
+        if (b <= c)
+        {
+            // a < b ≤ c
+//            Serial.println("1. a < b <= c");
+            Y_ClearStart = Y_ClearEnd = -1;
+            Y_DrawStart = a;
+            Y_DrawEnd = min(b + H - 1, c);
+        }
+        else if (a <= c)
+        {
+            // a ≤ c < b
+//            Serial.println("2. a <= c < b");
+            Y_ClearStart = c + 1;
+            Y_ClearEnd = b;
+            Y_DrawStart = a;
+            Y_DrawEnd = c;
+        }
+        else
+        {
+            // c < a < b
+//            Serial.println("3. c < a < b");
+            Y_ClearStart = a + 1;
+            Y_ClearEnd = b;
+            Y_DrawStart = a - H + 1;
+            Y_DrawEnd = a;
+        }
+    }
+    else // b < a
+    {
+        if (c <= b)
+        {
+            // c ≤ b < a
+//            Serial.println("4. c <= b < a");
+            Y_ClearStart = Y_ClearEnd = -1;
+            Y_DrawStart = max(c, b - H + 1);
+            Y_DrawEnd = a;
+        }
+        else if (a <= c)
+        {
+            // b < a ≤ c
+//            Serial.println("5. b < a <= c");
+            Y_ClearStart = b;
+            Y_ClearEnd = a - 1;
+            Y_DrawStart = a;
+            Y_DrawEnd = min(b + H - 1, c);
+        }
+        else
+        {
+            // b ≤ c < a
+//            Serial.println("6. b <= c < a");
+            Y_ClearStart = b;
+            Y_ClearEnd = c - 1;
+            Y_DrawStart = c;
+            Y_DrawEnd = a;
+        }
+    }
+    if (lastWarningLevel != warningLevel)
+    {
+        if (a <= c)
+        {
+            Y_DrawStart = a;
+            Y_DrawEnd = c;
+        } else
+        {
+            Y_DrawStart = c;
+            Y_DrawEnd = a;
+        }
+        lastWarningLevel = warningLevel;
+    }
+//    Serial.print("Y_ClearStart = "); Serial.print(Y_ClearStart); Serial.print("; Y_ClearEnd = "); Serial.print(Y_ClearEnd);
+//    Serial.print("; Y_DrawStart = "); Serial.print(Y_DrawStart); Serial.print("; Y_DrawEnd = "); Serial.println(Y_DrawEnd);
+
+    setColumnAddr(X_VSpeedArrowStart, X_VSpeedArrowStart + VSpeedArrowWidth - 1);
+    if (Y_ClearStart >= 0)
+    {
+        setPageAddr(Y_ClearStart, Y_ClearEnd);
+        writeMemoryStart();
+        fillSpace(C_VSpeed_BG_H, C_VSpeed_BG_L, VSpeedArrowWidth * (Y_ClearEnd - Y_ClearStart + 1));
+    }
+
+    if (value == 0)
+    {
+        setPageAddr(Y_VSpeedZero, Y_VSpeedZero);
+        writeMemoryStart();
+        fillSpace(C_VSpeed_H, C_VSpeed_L, VSpeedArrowWidth);
+    }
+    else
+    {
+        //    Serial.print("value = "); Serial.print(value); Serial.print("; LogIndex = "); Serial.print(LogIndex); Serial.print("; Y_offset = "); Serial.println(Y_offset);
+//        Serial.println("");
+
+        uint8_t Y_arrow;
+        uint8_t Y_pointBack = 0;
+        uint8_t Color_H;
+        uint8_t Color_L;
+        switch (warningLevel)
+        {
+        case 0:
+            Color_H = C_VSpeed_H;
+            Color_L = C_VSpeed_L;
+            break;
+
+        case 1:
+            Color_H = C_VSpeedWarning_H;
+            Color_L = C_VSpeedWarning_L;
+            break;
+
+        case 2:
+            Color_H = C_VSpeedDanger_H;
+            Color_L = C_VSpeedDanger_L;
+            break;
+        }
+
+        if (neg)
+        {
+            // Descending
+            int8_t Y_point = VSpeedArrowHeight - Y_offset - 1;
+            if (Y_point < 0)
+                Y_point = 0;
+            Y_arrow = Y_VSpeedZero;
+            setPageAddr(Y_VSpeedZero, Y_bound);
+            writeMemoryStart();
+            while (Y_arrow <= Y_bound)
+            {
+                for (uint8_t X_idx = 0; X_idx < VSpeedArrowWidthBytes; X_idx++)
+                {
+                    uint8_t BitMap = pgm_read_byte(&VSpeedArrowDn[Y_point * VSpeedArrowWidthBytes + X_idx]);
+                    if ((LogIndex >= 10) && (Y_arrow <= Y_VSpeedDnLimit))
+                    {
+                        BitMap ^= pgm_read_byte(&VSpeedArrowDn[Y_pointBack * VSpeedArrowWidthBytes + X_idx]);
+                    }
+                    for (uint8_t mask = 0b10000000; mask > 0; mask >>= 1)
+                    {
+                        if (BitMap & mask)
+                        {
+                            prepareColor(Color_H, Color_L);
+                        }
+                        else
+                        {
+                            prepareColor(C_VSpeed_BG_H, C_VSpeed_BG_L);
+                        }
+                        lcd_strobe;
+                    }
+                }
+                Y_pointBack++;
+                Y_arrow++;
+                if (Y_arrow >= Y_bound - VSpeedArrowHeight + 2)
+                    Y_point++;
+            }
+        }
+        else
+        {
+            // Climbing
+            int8_t Y_point = 0;
+            Y_arrow = Y_bound;
+            setPageAddr(Y_arrow, Y_VSpeedZero);
+            writeMemoryStart();
+            while (Y_arrow <= Y_VSpeedZero)
+            {
+                for (uint8_t X_idx = 0; X_idx < VSpeedArrowWidthBytes; X_idx++)
+                {
+                    uint8_t BitMap = pgm_read_byte(&VSpeedArrowUp[Y_point * VSpeedArrowWidthBytes + X_idx]);
+                    if ((LogIndex >= 10) && (Y_arrow >= Y_VSpeedUpLimit))
+                    {
+                        BitMap ^= pgm_read_byte(&VSpeedArrowUp[Y_pointBack * VSpeedArrowWidthBytes + X_idx]);
+                    }
+                    for (uint8_t mask = 0b10000000; mask > 0; mask >>= 1)
+                    {
+                        if (BitMap & mask)
+                        {
+                            prepareColor(Color_H, Color_L);
+                        }
+                        else
+                        {
+                            prepareColor(C_VSpeed_BG_H, C_VSpeed_BG_L);
+                        }
+                        lcd_strobe;
+                    }
+                }
+                if (Y_arrow >= Y_VSpeedUpLimit)
+                    Y_pointBack++;
+                Y_arrow++;
+                if (Y_point < VSpeedArrowHeight - 1)
+                    Y_point++;
+            }
+        }
+    }
+
+    Y_LastBound = Y_bound;
 }
 
 void Display::redrawAllTimeSegments()

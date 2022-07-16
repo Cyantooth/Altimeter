@@ -8,10 +8,10 @@
 
 #include <stdint.h>
 
-// *** [ КОНСТАНТЫ ] ***
+// *** [ Setting constants ] ***
 
 static constexpr uint8_t AltFixedDigits = 2;
-static constexpr uint16_t MaxVSpeed = 200; // Десятикратное значение
+static constexpr uint16_t MaxVSpeed = 200;
 
 // Тайминги
 static constexpr uint16_t T_Time = 100;
@@ -48,7 +48,7 @@ static constexpr uint16_t Y_PressUnitStart = 265;
 static constexpr uint16_t X_GndPressStart = 285;
 static constexpr uint16_t Y_GndPressStart = 265;
 static constexpr uint16_t X_TempStart = 220;
-// static constexpr uint16_t Y_DateStart = Y_TimeStart + StatusBarHeight;
+static constexpr uint16_t Y_DateStart = Y_TimeStart + StatusBarHeight;
 static constexpr uint16_t X_DateStart = 332;
 static constexpr uint8_t RulerWidth = 64;
 static constexpr uint16_t X_RulerStart = X_AltStart - 30 - RulerWidth - 2;
@@ -60,10 +60,10 @@ static constexpr uint16_t Y_VSpeedRulerStart = 13;
 static constexpr uint16_t X_VSpeedUnitStart = (X_LevelerStart - txtMSWidth) >> 1;
 static constexpr uint16_t Y_VSpeedUnitStart = disp_y_size - txtMSHeight - 1;
 static constexpr uint16_t X_VSpeedStart = 1;
-// static constexpr uint16_t Y_VSpeedStart = disp_y_size - txtMSHeight - VSpeedFontHeight - 10;
-// static constexpr uint16_t Y_VSpeedZero = Y_VSpeedRulerStart + (VSpeedRulerHeight >> 1);
-// static constexpr uint16_t Y_VSpeedUpLimit = Y_VSpeedZero - VSpeedArrowHeight + 1;
-// static constexpr uint16_t Y_VSpeedDnLimit = Y_VSpeedZero + VSpeedArrowHeight - 1;
+static constexpr uint16_t Y_VSpeedStart = disp_y_size - txtMSHeight - VSpeedFontHeight - 10;
+static constexpr uint16_t Y_VSpeedZero = Y_VSpeedRulerStart + (VSpeedRulerHeight >> 1);
+static constexpr uint16_t Y_VSpeedUpLimit = Y_VSpeedZero - VSpeedArrowHeight + 1;
+static constexpr uint16_t Y_VSpeedDnLimit = Y_VSpeedZero + VSpeedArrowHeight - 1;
 static constexpr uint16_t X_VSpeedArrowStart = 4;
 static constexpr uint16_t Y_VSpeedArrowStart = Y_VSpeedRulerStart + 4;
 
@@ -197,3 +197,11 @@ static constexpr uint8_t LevelerHalfHeight = LevelerHeight / 2;
 
 const uint8_t TimeFixedSegments[10] = {255,0,0,255,1,1,255,2,2,255};
 const uint8_t DateFixedSegments[10] = {5,5,255,4,4,255,3,3,3,3};
+const uint8_t Logarithms[] PROGMEM = {
+    0,4,7,10,13,15,18,20,22,24,26,28,29,31,33,34,36,37,38,40,41,42,43,45,46,47,48,49,50,51,52,53,54,54,55,56,57,58,59,59,
+    60,61,62,62,63,64,64,65,66,66,67,68,68,69,69,70,70,71,72,72,73,73,74,74,75,75,76,76,77,77,78,78,79,79,79,80,80,81,81,
+    82,82,82,83,83,84,84,84,85,85,86,86,86,87,87,87,88,88,89,89,89,90,90,90,91,91,91,92,92,92,92,93,93,93,94,94,94,95,95,
+    95,96,96,96,96,97,97,97,97,98,98,98,99,99,99,99,100,100,100,100,101,101,101,101,102,102,102,102,103,103,103,103,104,
+    104,104,104,104,105,105,105,105,106,106,106,106,106,107,107,107,107,108,108,108,108,108,109,109,109,109,109,110,110,
+    110,110,110,111,111,111,111,111,112,112,112,112,112,112,113,113,113,113,113,114,114
+};

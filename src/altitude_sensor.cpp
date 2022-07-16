@@ -1,7 +1,10 @@
 #include "altitude_sensor.h"
 
+#include <Arduino.h>
+
 #include "application.h"
 #include "i2c.h"
+#include "ring_buffer.h"
 
 class AltitudeSensor::PrivateSensor
 {
@@ -272,17 +275,14 @@ uint8_t AltitudeSensor::PrivateBme280::calcTemp()
 
 AltitudeSensor::AltitudeSensor()
 {
+    m_altBuffer = new RingBuffer;
+    TrendMul = RingBuffer::MaxBufferLenght / 10;
     aApplication->clearFlag(ApplicationFlags::AltSensorError);
-    
-    float S = 0;
-    K1 = 0;
-    for (int i = 1; i <= MaxPressBufferLenght; i++)
-    {
-        S += i;
-        K1 += i * i;
-    }
-    K2 = S / MaxPressBufferLenght;
-    K1 = 5 / (K1 - K2 * S);
+}
+
+AltitudeSensor::~AltitudeSensor()
+{
+    delete m_altBuffer;
 }
 
 bool AltitudeSensor::isTimeToGetPress() const
@@ -326,8 +326,6 @@ uint8_t AltitudeSensor::checkSensor()
         if (m_sensorType == stUnknown)
             return ret;
     }
-
-    m_trendMul = MaxPressBufferLenght * d->pressInterval() / 1000;
     return d->readCalibrateParams();
 }
 
@@ -370,22 +368,20 @@ bool AltitudeSensor::isTempReady() const
 bool AltitudeSensor::isHumReady() const
 {
     return m_sensorType == BME280 &&
-        millis() - m_lastHumTime >= ((PrivateBme280*)d)->uhDelay();
+            millis() - m_lastHumTime >= ((PrivateBme280*)d)->uhDelay();
+}
+
+void AltitudeSensor::gndChanged()
+{
+    m_altBuffer->clear();
 }
 
 void AltitudeSensor::calcTrend()
 {
-    float Ty = 0.0, Sy = 0.0;
-    float tmp = 0.0;
-    for (uint8_t i = 0; i < m_pressBufferLenght; i++)
-    {
-        Sy += m_altBuffer[i];
-        Ty += (m_pressBufferLenght - i) * m_altBuffer[i]; // Обратный тренд (последнее значение с индексом 0)
-    }
-    tmp = (Ty - K2 * Sy) * K1;
-    if (aApplication->altUnit() == AltUnits::Feets)
-        m_vSpeed = tmp * 60; // Если футы, то в минуту
-    m_vSpeed = tmp / m_trendMul;
+    float trend = m_altBuffer->trend() / TrendMul;
+//    if (aApplication->altUnit() == AltUnits::Feets)
+//        trend = trend * 60; // Feel per minutes
+    aApplication->setVSpeed(trend);
 }
 
 const uint16_t AltitudeSensor::pressInterval() const
@@ -426,6 +422,8 @@ void AltitudeSensor::finishReadPress()
 //    int32_t filteredPressure2 = filtered(pressure);
 //    Serial.print(pressure); Serial.print("\t"); Serial.print(filteredPressure); Serial.print("\t"); Serial.println(filteredPressure2);
     int32_t altitude = pressToAlt(m_filteredPressure);
+    m_altBuffer->append(altitude);
+    calcTrend();
     int16_t flightLevel = pressToFL(m_filteredPressure);
     aApplication->setAltitude(altitude);
     aApplication->setFlightLevel(flightLevel);
@@ -489,7 +487,7 @@ int32_t AltitudeSensor::filtered2(int32_t pressure)
 
     float _kalman_gain, _current_estimate;
     static float _err_estimate = _err_measure;
-    static float _last_estimate;
+    static float _last_estimate = pressure;
 
     _kalman_gain = (float)_err_estimate / (_err_estimate + _err_measure);
     _current_estimate = _last_estimate + (float)_kalman_gain * (pressure - _last_estimate);
