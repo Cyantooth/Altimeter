@@ -29,6 +29,6 @@ public:
     };
 
     Time getTime(bool includeDate);
-    void setTime(const Time &time);
-    void setDate(const Time &time);
+    void setTime(const Time& time);
+    void setDate(const Time& time);
 };

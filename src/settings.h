@@ -13,7 +13,7 @@
 static constexpr uint8_t AltFixedDigits = 2;
 static constexpr uint16_t MaxVSpeed = 200;
 
-// Тайминги
+// Timings
 static constexpr uint16_t T_TimeCheckPeriod = 100;
 static constexpr uint32_t T_TimeEditTimeout = 65000;
 
@@ -67,14 +67,14 @@ static constexpr uint16_t Y_VSpeedDnLimit = Y_VSpeedZero + VSpeedArrowHeight - 1
 static constexpr uint16_t X_VSpeedArrowStart = 4;
 static constexpr uint16_t Y_VSpeedArrowStart = Y_VSpeedRulerStart + 4;
 
-// Линейка
+// Ruler
 static constexpr uint8_t rulerFontHalfHeight = rulerFontHeight / 2;
 static constexpr int16_t RulerHeight = disp_y_size - 2 * (16 + 2);
 
-// Уровень
+// Leveler
 static constexpr uint8_t LevelerHalfHeight = LevelerHeight / 2;
 
-// Цвета элементов
+// Element colors
 #ifdef inverse
     static constexpr uint8_t C_Alt_H = ~0xFF;
     static constexpr uint8_t C_Alt_L = ~0xFF;

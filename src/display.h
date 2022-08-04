@@ -96,13 +96,13 @@ private:
     void setCurrentFont(const FONT_INFO* newFont);
 
 private:
-    uint8_t m_lastTempArray[5] = {255,255,255,255,255};
-    uint8_t m_lastTimeArray[10] = {255,255,255,255,255,255,255,255,255,255};
-    uint8_t m_lastDateArray[10] = {255,255,255,255,255,255,255,255,255,255};
-    uint8_t m_lastFLArray[3] = {255,255,255};
-    uint8_t m_altDisplayed[6] = {255,255,255,255,255,255};
-    uint8_t m_altToDisplay[6] = {0,0,0,0,0,0};
-    uint8_t lastVSpeedArray[5] = {255,255,255,255,255};
+    uint8_t m_lastTempArray[5] = { 255,255,255,255,255 };
+    uint8_t m_lastTimeArray[10] = { 255,255,255,255,255,255,255,255,255,255 };
+    uint8_t m_lastDateArray[10] = { 255,255,255,255,255,255,255,255,255,255 };
+    uint8_t m_lastFLArray[3] = { 255,255,255 };
+    uint8_t m_altDisplayed[6] = { 255,255,255,255,255,255 };
+    uint8_t m_altToDisplay[6] = { 0,0,0,0,0,0 };
+    uint8_t lastVSpeedArray[5] = { 255,255,255,255,255 };
     float m_altToDraw = 0.0;
     int32_t m_altDrawed = 32767;
     uint16_t Y_LastLeveler = 32767;

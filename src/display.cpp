@@ -106,19 +106,19 @@ void Display::LCD_Write_DATA(uint8_t value)
 
 void Display::setColumnAddr(uint16_t x1, uint16_t x2)
 {
-    LCD_Write_COM(0x2A); // Set Column Address
-    LCD_Write_DATA(x1 >> 8); //, x1
+    LCD_Write_COM(0x2A);
+    LCD_Write_DATA(x1 >> 8);
     LCD_Write_DATA(x1);
-    LCD_Write_DATA(x2 >> 8); //, x2
+    LCD_Write_DATA(x2 >> 8);
     LCD_Write_DATA(x2);
 }
 
 void Display::setPageAddr(uint16_t y1, uint16_t y2)
 {
-    LCD_Write_COM(0x2B); // Set Page Address
-    LCD_Write_DATA(y1 >> 8); //, y1
+    LCD_Write_COM(0x2B);
+    LCD_Write_DATA(y1 >> 8);
     LCD_Write_DATA(y1);
-    LCD_Write_DATA(y2 >> 8); //, y2
+    LCD_Write_DATA(y2 >> 8);
     LCD_Write_DATA(y2);
 }
 
@@ -173,7 +173,8 @@ void Display::drawPackedBitmap(PGM_P bitmap, uint8_t FG_H, uint8_t FG_L, uint8_t
         {
             C_H = FG_H;
             C_L = FG_L;
-        } else
+        }
+        else
         {
             C_H = BG_H;
             C_L = BG_L;
@@ -377,7 +378,8 @@ void Display::printFlightLevel(const int16_t flightLevel)
             if (digit == 255)
             {
                 fillSpace(C_Pressure_BG_H, C_Pressure_BG_L, VSpeedFontHeight * VSpeedFontWidth);
-            } else
+            }
+            else
             {
                 uint16_t charLen = pgm_read_word(&VSpeedFont_sizes[digit]);
                 uint16_t charOffset = pgm_read_word(&VSpeedFont_offsets[digit]);
@@ -414,7 +416,7 @@ void Display::printAltitude(const int32_t altitude)
         }
     }
 
-    // Линейка
+    // Ruler and leveler
     if (m_altToDraw != m_altDrawed)
     {
         drawRuler();
@@ -901,7 +903,7 @@ void Display::printAltCharFloated(const uint8_t pos, const long& value)
                 break;
             curBit = !curBit;
         }
-        Y_charOffset = 0; // Смещение по Y только для первого символа
+        Y_charOffset = 0; // Offset is only for the first symbol
     }
 }
 
@@ -1014,7 +1016,8 @@ void Display::drawRuler()
         BG_H = C_RulerGround_H;
         BG_L = C_RulerGround_L;
         CurrentBG = clGround;
-    } else
+    }
+    else
     {
         cnt100 = (altOffset % 100) + 1;
         cnt50  = (altOffset %  50) + 1;
@@ -1024,7 +1027,8 @@ void Display::drawRuler()
             BG_H = C_Alt_BG_H;
             BG_L = C_Alt_BG_L;
             CurrentBG = clBG;
-        } else
+        }
+        else
         {
             BG_H = C_RulerSky_H;
             BG_L = C_RulerSky_L;
@@ -1068,12 +1072,12 @@ void Display::drawRuler()
         {
             if (RelAlt == altEndFrame)
             {
-                // Выходим из кадра
+                // Exit out of the frame
                 inFrame = false;
                 altEndFrame -= 100;
                 altStartFrame -= 100;
                 if (altEndFrame <= altOffset - RulerHeight)
-                    altStartFrame -= 100; // Выводим за пределы видимости, чтобы больше не рисовать
+                    altStartFrame -= 100; //< Go beyond the bounds
                 intToArray(altToRuler, &digits[0]);
 
                 bool showDigits = false;
@@ -1140,7 +1144,7 @@ void Display::drawRuler()
         if (inFrame)
             Y_Frame = altStartFrame - RelAlt;
 
-        // Рисуем линейку
+        // Draw the ruler
         uint8_t x_Divider;
         cnt10--;
         cnt50--;
@@ -1158,10 +1162,14 @@ void Display::drawRuler()
                     altToRuler = RelAlt;
                 }
                 else
+                {
                     x_Divider = RulerWidth - 16;
+                }
             }
             else
+            {
                 x_Divider = RulerWidth - 8;
+            }
         }
         else
             x_Divider = RulerWidth;
@@ -1172,17 +1180,13 @@ void Display::drawRuler()
             if (inFrame)
             {
                 if (x == x_Divider)
-                {
                     currentIndex = clFrame;
-                }
                 frameBuffer[Y_Frame * RulerWidth + x] = currentIndex;
             }
             else
             {
                 if (x == x_Divider)
-                {
                     prepareColor(C_AltFrame_H, C_AltFrame_L);
-                }
                 lcd_strobe;
             }
         }
@@ -1373,7 +1377,8 @@ void Display::drawVSpeed(const int16_t value, const uint8_t warningLevel)
         {
             Y_DrawStart = a;
             Y_DrawEnd = c;
-        } else
+        }
+        else
         {
             Y_DrawStart = c;
             Y_DrawEnd = a;

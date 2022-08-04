@@ -10,6 +10,7 @@ class AltitudeSensor::PrivateSensor
 {
 public:
     PrivateSensor() = default;
+    virtual ~PrivateSensor() = default;
 
     uint8_t checkSensor();
     virtual uint8_t readCalibrateParams() = 0;
@@ -96,7 +97,7 @@ private:
 
 uint8_t AltitudeSensor::PrivateBmp085::upDelay() const
 {
-    static const uint8_t delays_ms[4] = {4, 7, 13, 25};
+    static const uint8_t delays_ms[4] = { 4, 7, 13, 25 };
     return delays_ms[m_rate];
 }
 
@@ -267,12 +268,12 @@ uint8_t AltitudeSensor::checkSensor()
         uint8_t ret;
         m_sensorType = stUnknown;
         d = new PrivateBme280();
-        if (ret = d->checkSensor())
+        if ((ret = d->checkSensor()))
         {
             delete d;
 
             d = new PrivateBmp085();
-            if (ret = d->checkSensor())
+            if ((ret = d->checkSensor()))
                 delete d;
             else
                 m_sensorType = BMP085;
@@ -327,7 +328,7 @@ bool AltitudeSensor::isTempReady() const
 bool AltitudeSensor::isHumReady() const
 {
     return m_sensorType == BME280 &&
-            millis() - m_lastHumTime >= ((PrivateBme280*)d)->uhDelay();
+        millis() - m_lastHumTime >= ((PrivateBme280*)d)->uhDelay();
 }
 
 void AltitudeSensor::gndChanged()
@@ -407,12 +408,14 @@ void AltitudeSensor::finishReadTemp()
 
 void AltitudeSensor::startReadHum()
 {
+    // TODO
     Serial.println("startReadHum()");
     m_lastHumTime = millis();
 }
 
 void AltitudeSensor::finishReadHum()
 {
+    // TODO
     Serial.println("finishReadHum()");
 }
 

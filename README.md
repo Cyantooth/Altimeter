@@ -16,6 +16,7 @@ The project uses only standard arduino libraries such as <Wire.h> or <Arduino.h>
 - Timer that can be used for the flight time counting;
 - LED indicator of approaching to specific altitude;
 - LED indicator of timer working;
+- Take current pressure as a basic (reset QFE);
 - Storing parameters in EEPROM.
 ## Hardware
 - Arduino Mega 2560;

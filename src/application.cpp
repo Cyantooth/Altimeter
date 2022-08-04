@@ -320,7 +320,7 @@ void Application::reactRTC()
 
         uint16_t dif = abs(altitude() / 100 - altSet());
         bool oddSec = (m_currentTime.sec % 2);
-        // 30 метров ≈ 100 футов = 1 эшелон
+        // 30 meters ≈ 100 feets = 1 flight level
         m_ledAlt->light(dif <= 15 || (dif <= 30 && !oddSec));
         m_ledRec->light(testFlag(Recording) && (!testFlag(RecPause) || oddSec));
     }
@@ -365,7 +365,7 @@ void Application::reactTimer()
                 m_buttonB->acknowledge();
         }
 
-        // TODO: Write corrent state into EEPROM
+        // TODO: Write current state into EEPROM
     }
     else
     {
@@ -394,7 +394,7 @@ void Application::reactTimeSet()
         if (m_buttonA->event() == ButtonEvent::beShortPress)
         {
             m_buttonA->acknowledge();
-            // Подготовим этот и следующий сегменты к перерисовке
+            // Prepare this and following segments for redraw
             if (m_timeEditPart <= 2)
             {
                 for (uint8_t j = 0; j < 10; j++)
