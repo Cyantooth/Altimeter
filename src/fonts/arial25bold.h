@@ -1,3 +1,7 @@
+#pragma once
+
+#include "basefonts.h"
+
 const char Arial25Bold[] PROGMEM =
 {
 	// '!'

@@ -189,18 +189,6 @@ void AltitudeSensor::PrivateBmp085::startReadUT()
 
 uint8_t AltitudeSensor::PrivateBmp085::readCalibrateParams()
 {
-//    Serial.print("AC1:\t"); Serial.print(m_calibratedParams.ac1, HEX); Serial.print("\t"); Serial.println(m_calibratedParams.ac1);
-//    Serial.print("AC2:\t"); Serial.print(m_calibratedParams.ac2, HEX); Serial.print("\t"); Serial.println(m_calibratedParams.ac2);
-//    Serial.print("AC3:\t"); Serial.print(m_calibratedParams.ac3, HEX); Serial.print("\t"); Serial.println(m_calibratedParams.ac3);
-//    Serial.print("AC4:\t"); Serial.print(m_calibratedParams.ac4, HEX); Serial.print("\t"); Serial.println(m_calibratedParams.ac4);
-//    Serial.print("AC5:\t"); Serial.print(m_calibratedParams.ac5, HEX); Serial.print("\t"); Serial.println(m_calibratedParams.ac5);
-//    Serial.print("AC6:\t"); Serial.print(m_calibratedParams.ac6, HEX); Serial.print("\t"); Serial.println(m_calibratedParams.ac6);
-//    Serial.print("B1:\t");  Serial.print(m_calibratedParams.b1, HEX);  Serial.print("\t"); Serial.println(m_calibratedParams.b1);
-//    Serial.print("B2:\t");  Serial.print(m_calibratedParams.b2, HEX);  Serial.print("\t"); Serial.println(m_calibratedParams.b2);
-//    Serial.print("MB:\t");  Serial.print(m_calibratedParams.mb, HEX);  Serial.print("\t"); Serial.println(m_calibratedParams.mb);
-//    Serial.print("MC:\t");  Serial.print(m_calibratedParams.mc, HEX);  Serial.print("\t"); Serial.println(m_calibratedParams.mc);
-//    Serial.print("MD:\t");  Serial.print(m_calibratedParams.md, HEX);  Serial.print("\t"); Serial.println(m_calibratedParams.md);
-
     return readRegister(deviceAddr(), 0xAA, &m_calibratedParams, sizeof(m_calibratedParams));
 }
 
@@ -238,36 +226,7 @@ uint8_t AltitudeSensor::PrivateBme280::calcPress()
 
 uint8_t AltitudeSensor::PrivateBme280::calcTemp()
 {
-//    uint16_t ret;
-//    int32_t tmp;
-//    uint8_t regs[3];
-//    ret = ReadBurst(0xFA, 3, &regs[0]);
-//    if (ret)
-//    {
-//        UT = 0;
-//        T = 0;
-//        return ret;
-//    }
-//#ifdef DEBUG
-//    for (uint8_t i = 0; i < 3; i++)
-//    {
-//        Serial.print("["); Serial.print(i); Serial.print("]: "); Serial.println(regs[i], BIN);
-//    }
-//#endif
-//    tmp = (int32_t)regs[0] << 12 | (int32_t)regs[1] << 4 | (regs[2] & 0b11110000 ) >> 4;
-
-//    int32_t var1, var2;
-//    var1 = ((((tmp>>3) - ((int32_t)dig_T1<<1))) * ((int32_t)dig_T2)) >> 11;
-//    var2 = (((((tmp>>4) - ((int32_t)dig_T1)) * ((tmp>>4) - ((int32_t)dig_T1))) >> 12) * ((int32_t)dig_T3)) >> 14;
-//    t_fine = var1 + var2;
-//    T = round(((t_fine * 5 + 128) >> 8) / 10);
-//#ifdef DEBUG
-//            Serial.print("tmp = "); Serial.println(tmp); //##
-//            Serial.print("var1 = "); Serial.println(var1); //##
-//            Serial.print("var2 = "); Serial.println(var2); //##
-//            Serial.print("t_fine = "); Serial.println(t_fine); //##
-//#endif
-//    Serial.print("T = "); Serial.println(T); //##
+    // TODO
     return 0;
 }
 
@@ -379,8 +338,7 @@ void AltitudeSensor::gndChanged()
 void AltitudeSensor::calcTrend()
 {
     float trend = m_altBuffer->trend() / TrendMul;
-//    if (aApplication->altUnit() == AltUnits::Feets)
-//        trend = trend * 60; // Feel per minutes
+    // TODO: Calculate trent in feets per minutes
     aApplication->setVSpeed(trend);
 }
 
@@ -419,8 +377,6 @@ void AltitudeSensor::finishReadPress()
     }
     int32_t pressure = d->getP();
     m_filteredPressure = filtered2(pressure);
-//    int32_t filteredPressure2 = filtered(pressure);
-//    Serial.print(pressure); Serial.print("\t"); Serial.print(filteredPressure); Serial.print("\t"); Serial.println(filteredPressure2);
     int32_t altitude = pressToAlt(m_filteredPressure);
     m_altBuffer->append(altitude);
     calcTrend();

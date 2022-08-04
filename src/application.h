@@ -99,12 +99,12 @@ private:
     void setupInterrupts();
 
     void processEvents();
-    void reactTemperature();
+    void reactTemperatureChanged();
     void reactPressure();
     void reactHumidity();
     void reactVSpeed();
-    void reactAltSet();
-    void reactGndPress();
+    void reactAltSetChanged();
+    void reactGndPressChanged();
     void reactRTC();
     void reactTimer();
     void reactTimeSet();

@@ -8,16 +8,16 @@
 
 #include <stdint.h>
 
-// *** [ Setting constants ] ***
+// *** [ Settings ] ***
 
 static constexpr uint8_t AltFixedDigits = 2;
 static constexpr uint16_t MaxVSpeed = 200;
 
 // Тайминги
-static constexpr uint16_t T_Time = 100;
+static constexpr uint16_t T_TimeCheckPeriod = 100;
 static constexpr uint32_t T_TimeEditTimeout = 65000;
 
-// Координаты и размеры элементов
+// Coordinates and sizes of elements
 static constexpr uint16_t disp_x_size = 480;
 static constexpr uint16_t disp_y_size = 320;
 static constexpr uint16_t Y_Middle = disp_y_size / 2;

@@ -4,6 +4,7 @@
 #include <avr/pgmspace.h>
 
 #include "rtc.h"
+#include "fonts/basefonts.h"
 
 #define scs PORTG |=  0b00000010
 #define ccs PORTG &= ~0b00000010
@@ -34,6 +35,7 @@ public:
     void printDate(const Time& editTime, uint8_t editSegment);
     void hideDate();
     void printVSpeed(int16_t vSpeed);
+    void printFatal();
 
     void drawFixedElements();
     void drawAltUnits(const AltUnits altUnit);
@@ -90,6 +92,8 @@ private:
         const uint8_t BG_H,
         const uint8_t BG_L);
     void drawRuler();
+    void printText(uint16_t x0, uint16_t y0, char* text);
+    void setCurrentFont(const FONT_INFO* newFont);
 
 private:
     uint8_t m_lastTempArray[5] = {255,255,255,255,255};
@@ -102,4 +106,5 @@ private:
     float m_altToDraw = 0.0;
     int32_t m_altDrawed = 32767;
     uint16_t Y_LastLeveler = 32767;
+    FONT_INFO* m_currentFont;
 };

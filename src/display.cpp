@@ -3,6 +3,8 @@
 #include "settings.h"
 #include "application.h"
 #include "fonts/Tahoma42_neg.h"
+#include "fonts/arial25bold.h"
+#include "fonts/calibri14.h"
 
 Display::Display()
 {
@@ -481,12 +483,6 @@ void Display::printTime(const Time& curTime, uint8_t editPart)
         }
         X += timeFontWidth;
     }
-
-//    if (aApplication->testFlag(TimerMode) || aApplication->testFlag(TimeEditMode))
-//    {
-//        setPageAddr(Y_TimeStart + timeFontHeight + 1, Y_TimeStart + 2 * timeFontHeight);
-//        X = aApplication->testFlag(TimerMode) ? X_TimeStart : X_TimeStart - timeFontWidth * 2;
-//    }
 }
 
 void Display::printTimer(const Time& timer)
@@ -578,12 +574,6 @@ void Display::printDate(const Time &editTime, uint8_t editPart)
         }
         X += timeFontWidth;
     }
-
-//    if (aApplication->testFlag(TimerMode) || aApplication->testFlag(TimeEditMode))
-//    {
-//        setPageAddr(Y_TimeStart + timeFontHeight + 1, Y_TimeStart + 2 * timeFontHeight);
-//        X = aApplication->testFlag(TimerMode) ? X_TimeStart : X_TimeStart - timeFontWidth * 2;
-//    }
 }
 
 void Display::hideDate()
@@ -629,6 +619,17 @@ void Display::printVSpeed(int16_t vSpeed)
         }
         X += VSpeedFontWidth;
     }
+}
+
+void Display::printFatal()
+{
+    clrScr();
+    setCurrentFont(&Arial25BoldInfo);
+    printText(10, 10, "Sensor reading error!");
+    setCurrentFont(&Calibri14Info);
+    printText(10, 45, "There is a problem with reading data.");
+    printText(10, 64, "Please check cable or sensor.");
+    printText(10, disp_y_size - m_currentFont->heightPages - 10, "Waiting WDT for reboot...");
 }
 
 void Display::drawAltUnits(const AltUnits altUnit)
@@ -725,7 +726,6 @@ void Display::setAltDigitsArray(const int32_t value)
       {
           m_altToDisplay[5] = (abs(value) % 100) * altFontHeight / 100;
           m_altToDraw = (float)value / 100.0;
-//          Serial.print("value = "); Serial.print(value); Serial.print("; altToDraw = "); Serial.println(altToDraw);
           intToArray(m_altToDraw, &m_altToDisplay[0], true);
           if (abs(value) % 10000 >= 9950)
           {
@@ -1190,6 +1190,37 @@ void Display::drawRuler()
     m_altDrawed = m_altToDraw;
 }
 
+void Display::printText(uint16_t x0, uint16_t y0, char* text)
+{
+    int stl = strlen(text);
+    uint16_t x = x0;
+    uint16_t width;
+    uint16_t height = m_currentFont->heightPages;
+    setPageAddr(y0, y0 + height - 1);
+    for (int i = 0; i < stl; i++)
+    {
+        char curChar = *text++;
+        EXT_FONT_CHAR_INFO efci = m_currentFont->charInfo[curChar - m_currentFont->startChar];
+        if (curChar >= m_currentFont->startChar && curChar <= m_currentFont->endChar)
+        {
+            width = efci.CharWidth;
+            setColumnAddr(x, x + width - 1);
+            writeMemoryStart();
+            drawPackedBitmap(&m_currentFont->data[efci.CharOffset], C_WarningText_H, C_WarningText_L, C_WarningText_BG_H, C_WarningText_BG_L, efci.CharLength);
+        }
+        else
+        {
+            width = m_currentFont->spacePixels * 2;
+        }
+        x += width + m_currentFont->spacePixels;
+    }
+}
+
+void Display::setCurrentFont(const FONT_INFO* newFont)
+{
+    m_currentFont = newFont;
+}
+
 void Display::drawLeveler(int16_t _altSet)
 {
     int16_t Y_new = m_altToDraw - _altSet + Y_Middle - LevelerHalfHeight;
@@ -1284,13 +1315,11 @@ void Display::drawVSpeed(const int16_t value, const uint8_t warningLevel)
     int16_t Y_ClearStart, Y_ClearEnd;
     int16_t Y_DrawStart, Y_DrawEnd;
 
-//    Serial.print("a = "); Serial.print(a); Serial.print("; b = "); Serial.print(b); Serial.print("; c = "); Serial.println(c);
     if (a < b)
     {
         if (b <= c)
         {
             // a < b ≤ c
-//            Serial.println("1. a < b <= c");
             Y_ClearStart = Y_ClearEnd = -1;
             Y_DrawStart = a;
             Y_DrawEnd = min(b + H - 1, c);
@@ -1298,7 +1327,6 @@ void Display::drawVSpeed(const int16_t value, const uint8_t warningLevel)
         else if (a <= c)
         {
             // a ≤ c < b
-//            Serial.println("2. a <= c < b");
             Y_ClearStart = c + 1;
             Y_ClearEnd = b;
             Y_DrawStart = a;
@@ -1307,7 +1335,6 @@ void Display::drawVSpeed(const int16_t value, const uint8_t warningLevel)
         else
         {
             // c < a < b
-//            Serial.println("3. c < a < b");
             Y_ClearStart = a + 1;
             Y_ClearEnd = b;
             Y_DrawStart = a - H + 1;
@@ -1319,7 +1346,6 @@ void Display::drawVSpeed(const int16_t value, const uint8_t warningLevel)
         if (c <= b)
         {
             // c ≤ b < a
-//            Serial.println("4. c <= b < a");
             Y_ClearStart = Y_ClearEnd = -1;
             Y_DrawStart = max(c, b - H + 1);
             Y_DrawEnd = a;
@@ -1327,7 +1353,6 @@ void Display::drawVSpeed(const int16_t value, const uint8_t warningLevel)
         else if (a <= c)
         {
             // b < a ≤ c
-//            Serial.println("5. b < a <= c");
             Y_ClearStart = b;
             Y_ClearEnd = a - 1;
             Y_DrawStart = a;
@@ -1336,7 +1361,6 @@ void Display::drawVSpeed(const int16_t value, const uint8_t warningLevel)
         else
         {
             // b ≤ c < a
-//            Serial.println("6. b <= c < a");
             Y_ClearStart = b;
             Y_ClearEnd = c - 1;
             Y_DrawStart = c;
@@ -1356,8 +1380,6 @@ void Display::drawVSpeed(const int16_t value, const uint8_t warningLevel)
         }
         lastWarningLevel = warningLevel;
     }
-//    Serial.print("Y_ClearStart = "); Serial.print(Y_ClearStart); Serial.print("; Y_ClearEnd = "); Serial.print(Y_ClearEnd);
-//    Serial.print("; Y_DrawStart = "); Serial.print(Y_DrawStart); Serial.print("; Y_DrawEnd = "); Serial.println(Y_DrawEnd);
 
     setColumnAddr(X_VSpeedArrowStart, X_VSpeedArrowStart + VSpeedArrowWidth - 1);
     if (Y_ClearStart >= 0)
@@ -1375,9 +1397,6 @@ void Display::drawVSpeed(const int16_t value, const uint8_t warningLevel)
     }
     else
     {
-        //    Serial.print("value = "); Serial.print(value); Serial.print("; LogIndex = "); Serial.print(LogIndex); Serial.print("; Y_offset = "); Serial.println(Y_offset);
-//        Serial.println("");
-
         uint8_t Y_arrow;
         uint8_t Y_pointBack = 0;
         uint8_t Color_H;

@@ -8,17 +8,17 @@ class AltitudeSensor
 {
 public:
     enum SensorType { stUnknown, BMP085, BME280 };
-//    enum State
-//    {
-//        NoError = 0,
-//        DataTooLong,
-//        NackOnAddress,
-//        NackOnData,
-//        OtherError,
-//        Timeout,
-//        IncorrectReturnCode,
-//        DataNotAvailable
-//    };
+    // enum State
+    // {
+    //     NoError = 0,
+    //     DataTooLong,
+    //     NackOnAddress,
+    //     NackOnData,
+    //     OtherError,
+    //     Timeout,
+    //     IncorrectReturnCode,
+    //     DataNotAvailable
+    // };
     
     AltitudeSensor();
     virtual ~AltitudeSensor();

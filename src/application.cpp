@@ -25,9 +25,10 @@ Application::Application()
     m_altSensor = new AltitudeSensor();
     if (uint8_t check = m_altSensor->checkSensor())
     {
-        Serial.print("Sensor error: ");
-        Serial.println(check);
-        // TODO: Error messages
+        Serial.print("Sensor error: "); Serial.println(check);
+        m_display->printFatal();
+        wdt_enable(WDTO_8S);
+        while(1);
     }
     else
     {
@@ -69,16 +70,15 @@ void Application::initSerial()
 {
     Serial.begin(115200);
     Wire.begin();
-    Wire.setClock(400000);
+    Wire.setClock(200000);
 }
 
 void Application::run()
 {
     if (testFlag(AltSensorError))
     {
-//        Serial.println("Sensor error!");
+        Serial.print("Sensor error");
         while(1);
-        // TODO: Improve
     }
     else
     {
@@ -114,9 +114,9 @@ void Application::interrupt()
     m_buttonA->poll();
     m_buttonB->poll();
 
-    if (!testFlag(TimerError) && millis() - m_timeShowMillis >= T_Time)
+    if (!testFlag(TimerError) && millis() - m_timeShowMillis >= T_TimeCheckPeriod)
     {
-        m_timeShowMillis += T_Time;
+        m_timeShowMillis += T_TimeCheckPeriod;
         setFlag(TimeToPrintTime);
     }
 }
@@ -165,7 +165,7 @@ void Application::setupInterrupts()
     TCCR2B = 0;// same for TCCR2B
     TCNT2  = 0;//initialize counter value to 0
     // set compare match register for 8khz increments
-    OCR2A = 255;// (must be <256)
+    OCR2A = 255;
 
     TCCR2A |= (1 << WGM21);  // turn on CTC mode
     TCCR2B |= (1 << CS22);   // Set CS21 bit for 64 prescaler | (1 << CS20)
@@ -182,12 +182,12 @@ void Application::setupInterrupts()
 
 void Application::processEvents()
 {
-    reactTemperature();
+    reactTemperatureChanged();
     reactPressure();
     reactHumidity();
     reactVSpeed();
-    reactAltSet();
-    reactGndPress();
+    reactAltSetChanged();
+    reactGndPressChanged();
     reactRTC();
     reactAltUnitChanged();
     reactPressUnitChanged();
@@ -236,7 +236,7 @@ void Application::reactVSpeed()
     }
 }
 
-void Application::reactTemperature()
+void Application::reactTemperatureChanged()
 {
     if (testFlag(TempChanged))
     {
@@ -245,7 +245,7 @@ void Application::reactTemperature()
     }
 }
 
-void Application::reactAltSet()
+void Application::reactAltSetChanged()
 {
     if (testFlag(AltSetChanged))
     {
@@ -256,7 +256,7 @@ void Application::reactAltSet()
     }
 }
 
-void Application::reactGndPress()
+void Application::reactGndPressChanged()
 {
     if (testFlag(GndPressChanged))
     {
@@ -365,26 +365,7 @@ void Application::reactTimer()
                 m_buttonB->acknowledge();
         }
 
-//        // Запись изменения состояния в EEPROM
-//        uint8_t TimerState = (Flags.Recording?1:0) | (Flags.RecPause?2:0);
-//        if (LastTimerState != TimerState)
-//        {
-//            uint8_t ROMcnt = 7;
-//            EEPROM.write(ROMcnt++, TimerState);
-//            if (Flags.RecPause)
-//            {
-//                EEPROM.write(ROMcnt++, RecTimer.hour);
-//                EEPROM.write(ROMcnt++, RecTimer.min);
-//                EEPROM.write(ROMcnt++, RecTimer.sec);
-//            }
-//            else
-//            {
-//                EEPROM.write(ROMcnt++, CurrentTime.hour);
-//                EEPROM.write(ROMcnt++, CurrentTime.min);
-//                EEPROM.write(ROMcnt++, CurrentTime.sec);
-//            }
-//            LastTimerState = TimerState;
-//        }
+        // TODO: Write corrent state into EEPROM
     }
     else
     {

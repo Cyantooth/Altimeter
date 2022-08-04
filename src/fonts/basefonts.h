@@ -1,8 +1,6 @@
 #pragma once
 
-#include <Arduino.h>
-
-typedef uint8_t uint_8;
+#include <stdint.h>
 
 typedef struct
 {
